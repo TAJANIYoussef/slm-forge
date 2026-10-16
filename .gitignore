@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# slm-forge outputs
+runs/
+eval_out/
+*.sqlite
+
+# Data you should not commit by accident (keep the fictional samples)
+data/train/*
+!data/train/sample_chat.jsonl
+data/distilled/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
