@@ -77,8 +77,21 @@ class PromptTemplate:
 
 
 def _format_fields(template: str) -> set[str]:
-    """Field names used by a ``str.format`` template (raises ValueError on malformed braces)."""
-    return {name for _, name, _, _ in string.Formatter().parse(template) if name is not None}
+    """Field names used by a ``str.format`` template (raises ValueError on malformed braces).
+
+    Only plain ``{name}`` fields are allowed: a format spec or conversion (``{q:>10}``,
+    ``{q!r}``, nested ``{q:{q}}``) would make the rendered prompt depend on item values.
+    """
+    names: set[str] = set()
+    for _, name, spec, conversion in string.Formatter().parse(template):
+        if name is None:
+            continue
+        if spec or conversion:
+            raise ValueError(f"field {{{name}}} must not use a format spec or conversion")
+        if not name.isidentifier():
+            raise ValueError(f"field {{{name}}} must be a plain name (no indexing or attributes)")
+        names.add(name)
+    return names
 
 
 def _parse_template(template_id: str, lang_script: LangScript, text: str, label: str) -> PromptTemplate:

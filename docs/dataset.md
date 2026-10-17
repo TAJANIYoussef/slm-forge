@@ -153,7 +153,7 @@ milestone.
 | W10 | A fact_id with a single language member | M1 |
 | W11 | Weak disagreement between declared and detected script | M1 |
 | W12 | `reviewed: false` items present | M1 |
-| W13 | Rule langid disagrees with the declared language (an English prompt labelled `fr` triggers it) | M1 |
+| W13 | Rule langid disagrees with the declared language (an English prompt labelled `fr` triggers it) | M4 |
 
 Issues are reported as `LEVEL CODE [line N]: message`, collected per line instead of stopping at
 the first error.

@@ -20,7 +20,8 @@ ARTICLE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"(?:l[- ]?)?(?:fasl|fsl|mada|madda)\s*(\d+)"),
 )
 INSTRUMENT_PATTERN: Final = re.compile(
-    r"(?:loi|law|dahir|قانون|9anon|qanoun)\s*(?:n[°o]\s*)?(\d{1,3})[.\-/](\d{2,4})"
+    r"(?:loi|law|dahir|قانون|l?9an(?:o|ou)n|qanoun)\s*"
+    r"(?:(?:n[°o]\.?|no\.?|number|رقم)\s*)?(\d{1,3})[.\-/](\d{2,4})"
 )
 
 
@@ -35,5 +36,5 @@ class CitationRef:
 
 
 def extract_citations(text: str) -> list[CitationRef]:
-    """FR/EN/Arabic/Arabizi article and law references."""
-    todo("M4", "extract_citations")
+    """FR/EN/Arabic/Arabizi article and law references (M1: fr/en forms; M4: Arabic/Arabizi)."""
+    todo("M1", "extract_citations")

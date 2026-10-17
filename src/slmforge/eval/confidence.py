@@ -61,7 +61,7 @@ def compute_confidence(
 
 def canonical_answer(item: GroundTruthItem, cands: CandidateSet, signals: ResponseSignals) -> str:
     """Canonical form for consistency: ``ABSTAIN``, ``num:<v>|<unit>``, ``alias:<i>``, ``text:<64>``."""
-    todo("M1", "canonical_answer")
+    todo("M9", "canonical_answer")
 
 
 def consistency_confidence(

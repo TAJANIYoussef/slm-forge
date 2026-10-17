@@ -232,3 +232,12 @@ def test_file_listed_in_a_distill_manifest_is_rejected(tmp_path: Path) -> None:
     assert_not_distilled(path)
     (tmp_path / DISTILL_MANIFEST_NAME).write_text("[]", "utf-8")  # malformed manifest
     assert_not_distilled(path)
+
+
+def test_redact_pii_typographic_spaces_and_prefixes() -> None:
+    from slmforge.data.distill import redact_pii
+
+    text = "Tél : 06 12 34 56 78, (+212) 6 12 34 56 78, RIB 011 519 0000012050005349 21, رقمAB123456"
+    redacted, kinds = redact_pii(text)
+    assert kinds == ["phone", "phone", "rib", "cin"], (redacted, kinds)
+    assert "12 34" not in redacted and "AB123456" not in redacted

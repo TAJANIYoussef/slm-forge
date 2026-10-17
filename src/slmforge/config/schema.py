@@ -10,15 +10,63 @@ config is written next to every output (see ``config.load.dump_resolved``).
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
-from typing import Literal
+from types import MappingProxyType
+from typing import Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from slmforge.types import DEFAULT_DOMAINS, Language, Script
 
 Dtype = Literal["auto", "bf16", "fp16", "fp32"]
+
+DEFAULT_MAX_NEW_TOKENS: Final[Mapping[str, int]] = MappingProxyType(
+    {"default": 128, "en": 96, "fr": 112, "darija_latn": 160, "darija_arab": 192, "darija_mixed": 192}
+)
+"""Per lang_script token budgets (Darija tokenizes into 2-4x more tokens than English)."""
+
+DEFAULT_UTILITY_WEIGHTS: Final[Mapping[str, float]] = MappingProxyType(
+    {
+        "correct": 1.0,
+        "correct_hedged": 1.0,
+        "abstain_correct": 1.0,
+        "abstain_accepted": 0.0,
+        "non_answer_answerable": -0.25,
+        "non_answer_unanswerable": 0.0,
+        "abstain_unwarranted": -0.5,
+        "wrong_hedged": -0.5,
+        "wrong_low_conf": -0.75,
+        "confabulation": -1.0,
+        "invalid": -0.5,
+    }
+)
+"""Utility weight per outcome (NON_ANSWER split by answerability; UNRESOLVED has none)."""
+
+
+def _merge_over_defaults(
+    v: Any, defaults: Mapping[str, Any], where: str, *, positive_int: bool = False
+) -> Any:
+    """Merge a partial mapping over its defaults and reject unknown keys and bad values.
+
+    ``--set scoring.weights.confabulation=-2`` then changes one weight instead of
+    replacing the whole mapping, and a typo such as ``confabulaton`` is an error.
+    """
+    if not isinstance(v, Mapping):
+        return v  # let pydantic report the type error
+    if unknown := sorted(set(v) - set(defaults)):
+        raise ValueError(f"{where}: unknown key(s) {unknown}; expected a subset of {sorted(defaults)}")
+    merged = {**defaults, **v}
+    for key, value in merged.items():
+        if isinstance(value, bool) or not isinstance(value, int | float):
+            raise ValueError(f"{where}.{key} must be a number, got {value!r}")
+        if not math.isfinite(value):
+            raise ValueError(f"{where}.{key} must be finite, got {value!r}")
+        if positive_int and (not float(value).is_integer() or value <= 0):
+            raise ValueError(f"{where}.{key} must be a positive integer, got {value!r}")
+    return merged
 
 
 class _Strict(BaseModel):
@@ -170,16 +218,14 @@ class GenerationConfig(_Strict):
     quantization: Literal["match_training", "none", "4bit", "8bit"] = "match_training"
     device: str = "auto"
     base_model_override: str | None = None
-    max_new_tokens: dict[str, int] = {
-        "default": 128,
-        "en": 96,
-        "fr": 112,
-        "darija_latn": 160,
-        "darija_arab": 192,
-        "darija_mixed": 192,
-    }
+    max_new_tokens: dict[str, int] = dict(DEFAULT_MAX_NEW_TOKENS)  # partial mappings merge over these
     stop_strings: list[str] = []
     cache: bool = True
+
+    @field_validator("max_new_tokens", mode="before")
+    @classmethod
+    def _merge_max_new_tokens(cls, v: Any) -> Any:
+        return _merge_over_defaults(v, DEFAULT_MAX_NEW_TOKENS, "generation.max_new_tokens", positive_int=True)
 
 
 class MatchSection(_Strict):
@@ -216,19 +262,12 @@ class ScoringConfig(_Strict):
     unanswerable_no_cue_policy: Literal["residual", "unresolved"] = "residual"
     confidence: ConfidenceConfig = ConfidenceConfig()
     unresolved_flag_threshold: float = 0.05
-    weights: dict[str, float] = {
-        "correct": 1.0,
-        "correct_hedged": 1.0,
-        "abstain_correct": 1.0,
-        "abstain_accepted": 0.0,
-        "non_answer_answerable": -0.25,
-        "non_answer_unanswerable": 0.0,
-        "abstain_unwarranted": -0.5,
-        "wrong_hedged": -0.5,
-        "wrong_low_conf": -0.75,
-        "confabulation": -1.0,
-        "invalid": -0.5,
-    }
+    weights: dict[str, float] = dict(DEFAULT_UTILITY_WEIGHTS)  # partial mappings merge over these
+
+    @field_validator("weights", mode="before")
+    @classmethod
+    def _merge_weights(cls, v: Any) -> Any:
+        return _merge_over_defaults(v, DEFAULT_UTILITY_WEIGHTS, "scoring.weights")
 
 
 class StatsConfig(_Strict):

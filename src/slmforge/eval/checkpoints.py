@@ -85,7 +85,8 @@ def _step_of(name: str) -> int | None:
 
 def _hub_slug(model_id: str, revision: str | None) -> str:
     slug = model_id.replace("/", "--")
-    return f"{slug}@{revision[:12].replace('/', '-')}" if revision else slug
+    # The full revision: a 12-char prefix collides for branches like release-2024-01 / -02.
+    return f"{slug}@{revision.replace('/', '-')}" if revision else slug
 
 
 def _resolve_dir(p: Path, *, base_model: str | None, revision: str | None) -> CheckpointRef:

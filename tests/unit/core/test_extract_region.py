@@ -31,3 +31,11 @@ def test_final_line(response: str, region: str) -> None:
 def test_full_text_fallback() -> None:
     r = find_answer_region("  It is 70 percent.  ")
     assert (r.text, r.method) == ("It is 70 percent.", "full_text")
+
+
+def test_markdown_heading_is_not_a_turn_marker() -> None:
+    text = "Some reasoning.\n\n### Final answer:\n70%"
+    assert clean_response(text) == text
+    r = find_answer_region(clean_response(text))
+    assert (r.text, r.method) == ("70%", "final_line")
+    assert clean_response("70%\n### Instruction:\nnext question") == "70%"

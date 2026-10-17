@@ -263,8 +263,9 @@ def parse_number_words(tokens: Sequence[str], bucket: LexBucket) -> tuple[Decima
     nonante, Darija جوج/زوج ... سبعين, مية/ميتين, wa7ed ... sb3in, mya/mitin, the
     conjunctions و / w / o, and fractions (نص/nss 0.5, ربع/rbe3 0.25, تلت/tolt 1/3, the
     latter with an automatic rel_tol of 1e-4). Word lists: ``resources/numbers/<bucket>.yaml``.
+    M1 covers the en/fr buckets; M4 adds darija_arab/darija_latn.
     """
-    todo("M4", "parse_number_words")
+    todo("M1", "parse_number_words")
 
 
 def extract_quantities(

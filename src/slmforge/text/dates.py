@@ -36,10 +36,14 @@ class DateValue:
 
 
 def extract_dates(text: str, *, lang_hint: Language | None) -> list[DateValue]:
-    """Day-first numeric dates, ISO, FR/EN/MSA/Moroccan/Arabizi month names."""
-    todo("M4", "extract_dates")
+    """Day-first numeric dates, ISO, FR/EN/MSA/Moroccan/Arabizi month names.
+
+    M1 covers numeric/ISO dates and French/English month names; M4 adds MSA, Moroccan and
+    Arabizi month names.
+    """
+    todo("M1", "extract_dates")
 
 
 def compare_date(pred: DateValue, gold: DateSpec) -> Literal["equal", "different", "coarser"]:
     """Compare at the gold granularity."""
-    todo("M4", "compare_date")
+    todo("M1", "compare_date")

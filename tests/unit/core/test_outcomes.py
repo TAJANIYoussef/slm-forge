@@ -272,3 +272,36 @@ def test_reclassify_matches_decide_and_roundtrips() -> None:
     assert reclassify(r, tau=0.7).outcome is Outcome.WRONG_LOW_CONF
     assert reclassify(r, tau=0.5, verdict="match", verdict_source="human").outcome is Outcome.CORRECT
     assert ItemResult.from_json(r.to_json()) == r
+
+
+def test_nan_confidence_is_unavailable() -> None:
+    e = ev(ANS, verdict="mismatch", answered_signal=True, confidence=float("nan"))
+    assert e.confidence is None
+    assert decide(e, tau=0.0).outcome is Outcome.CONFABULATION
+    with pytest.raises(ValueError, match="probability"):
+        ev(ANS, confidence=1.5)
+
+
+def test_reclassify_keeps_scoring_policy() -> None:
+    e = ev(UNANS, answered_signal=True, answered_via="residual", confidence=0.9, no_cue_policy="unresolved")
+    r = _result(e)
+    assert r.outcome is Outcome.UNRESOLVED
+    assert reclassify(r, tau=0.5).outcome is Outcome.UNRESOLVED
+    assert reclassify(r, tau=0.5, policy="residual").outcome is Outcome.CONFABULATION
+
+
+def test_override_verdict_needs_source() -> None:
+    r = _result(ev(ANS, verdict="mismatch", answered_signal=True, confidence=0.6))
+    with pytest.raises(ValueError, match="verdict_source"):
+        reclassify(r, tau=0.5, verdict="match")
+
+
+def test_human_asserted_verdict_on_unanswerable_item() -> None:
+    e = ev(UNANS, answered_signal=True, answered_via="residual", confidence=0.9, no_cue_policy="unresolved")
+    r = reclassify(_result(e), tau=0.5, verdict="mismatch", verdict_source="human")
+    assert (r.outcome, r.verdict_source) == (Outcome.CONFABULATION, "human")
+    # a human verdict beats a lexical premise-rejection cue
+    e2 = ev(UNANS, premise_rejection=True, answered_signal=True, confidence=0.9)
+    assert reclassify(_result(e2), tau=0.5, verdict="mismatch", verdict_source="human").outcome is (
+        Outcome.CONFABULATION
+    )

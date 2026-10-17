@@ -145,3 +145,8 @@ def test_not_a_lock_file(tmp_path: Path) -> None:
     bad.write_text(json.dumps({"tau": 0.5}), encoding="utf-8")
     with pytest.raises(ValueError, match="not a protocol lock"):
         load_locked(bad)
+
+
+def test_stats_settings_change_the_protocol() -> None:
+    assert _proto(min_bucket_n=5).sha256() != _proto().sha256()
+    assert _proto(generation_backend="external").sha256() != _proto().sha256()

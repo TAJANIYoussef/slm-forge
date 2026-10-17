@@ -89,7 +89,7 @@ def test_resolve_dir_without_configs(tmp_path: Path) -> None:
         (
             "HuggingFaceTB/SmolLM2-1.7B@0123456789abcdef",
             None,
-            "HuggingFaceTB--SmolLM2-1.7B@0123456789ab",
+            "HuggingFaceTB--SmolLM2-1.7B@0123456789abcdef",
             "0123456789abcdef",
         ),
         ("org/name", "main", "org--name@main", "main"),

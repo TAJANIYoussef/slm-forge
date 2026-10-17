@@ -28,13 +28,17 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
+class OverrideError(ValueError):
+    """A malformed ``--set`` override (a usage error: CLI exit code 2)."""
+
+
 def apply_overrides(data: dict[str, Any], overrides: Sequence[str]) -> dict[str, Any]:
     """Apply ``dotted.key=value`` overrides in order; values are parsed as YAML scalars."""
     out: dict[str, Any] = _deepcopy(data)
     for ov in overrides:
         key, sep, raw = ov.partition("=")
         if not sep or not key:
-            raise ValueError(f"override must look like dotted.key=value, got {ov!r}")
+            raise OverrideError(f"override must look like dotted.key=value, got {ov!r}")
         node = out
         parts = key.split(".")
         for part in parts[:-1]:
@@ -42,7 +46,7 @@ def apply_overrides(data: dict[str, Any], overrides: Sequence[str]) -> dict[str,
             if child is None:
                 child = node[part] = {}
             if not isinstance(child, dict):
-                raise ValueError(f"override {ov!r}: {part!r} is not a mapping")
+                raise OverrideError(f"override {ov!r}: {part!r} is not a mapping")
             node = child
         node[parts[-1]] = _parse_scalar(raw)
     return out
@@ -89,9 +93,10 @@ def load_eval_config(
     data: dict[str, Any] = load_yaml(path) if path is not None else {}
     if "run" in data and "model" in data:  # a run config: use its eval section
         data = data.get("eval") or {}
-    if ground_truth is not None:
+    data = apply_overrides(data, overrides)
+    if ground_truth is not None:  # CLI flags win over --set and YAML
         data["ground_truth"] = str(ground_truth)
-    return EvalConfig.model_validate(expand_env(apply_overrides(data, overrides)))
+    return EvalConfig.model_validate(expand_env(data))
 
 
 def dump_resolved(cfg: BaseModel, path: Path) -> None:

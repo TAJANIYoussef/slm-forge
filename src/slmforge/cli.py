@@ -117,7 +117,9 @@ def eval_cmd(
     from slmforge.eval.runner import EvalRunner
 
     ckpt = resolve_checkpoint(checkpoint, base_model=base_model)
-    out_dir = out or Path("eval_out") / ckpt.name / suite
+    # Local checkpoint names repeat across runs (checkpoint-500): prefix the run directory name.
+    slug = f"{ckpt.path.resolve().parent.name}-{ckpt.name}" if ckpt.path is not None else ckpt.name
+    out_dir = out or Path("eval_out") / slug / suite
     metrics = EvalRunner(cfg).eval_checkpoint(ckpt, out_dir=out_dir)
     typer.echo(metrics.model_dump_json(indent=2))
 
@@ -244,7 +246,7 @@ def protocol_show(config: Annotated[Path, typer.Option("--config", "-c")]) -> No
     from slmforge.protocol import build_protocol
 
     cfg = _eval_config(config, None, None)
-    p = build_protocol(cfg, load_ground_truth(cfg.ground_truth))
+    p = build_protocol(cfg, load_ground_truth(cfg.ground_truth, allowed_domains=cfg.allowed_domains))
     typer.echo(p.model_dump_json(indent=2))
     typer.echo(f"sha256: {p.sha256()}")
 
@@ -259,7 +261,9 @@ def protocol_lock(
     from slmforge.protocol import build_protocol, lock_protocol
 
     cfg = _eval_config(config, None, None)
-    lock_protocol(build_protocol(cfg, load_ground_truth(cfg.ground_truth)), out)
+    lock_protocol(
+        build_protocol(cfg, load_ground_truth(cfg.ground_truth, allowed_domains=cfg.allowed_domains)), out
+    )
     typer.echo(f"locked: {out}")
 
 
@@ -336,9 +340,11 @@ def distill(
 def main() -> None:
     """Console-script entry point: maps known exceptions to exit codes."""
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")  # before any torch import
+    import yaml
     from pydantic import ValidationError
 
     from slmforge._stub import NotImplementedYet
+    from slmforge.config.load import OverrideError
     from slmforge.data.contamination import ContaminationError
     from slmforge.data.distill import DistilledDataRejected, DistillGateError
     from slmforge.eval.dataset import GroundTruthError
@@ -351,17 +357,22 @@ def main() -> None:
         DistillGateError,
         DistilledDataRejected,
         ContaminationError,
+        yaml.YAMLError,
+        ValueError,  # config loader, lexicon/unit tables, lock files, checkpoint resolution
     )
     try:
         app()
     except NotImplementedYet as e:
         typer.echo(f"not implemented yet: {e}", err=True)
         sys.exit(EXIT_NOT_IMPLEMENTED)
+    except OverrideError as e:
+        typer.echo(f"usage error: {e}", err=True)
+        sys.exit(EXIT_USAGE)
     except validation_errors as e:
         typer.echo(f"{type(e).__name__}: {e}", err=True)
         sys.exit(EXIT_VALIDATION)
-    except FileNotFoundError as e:
-        typer.echo(f"file not found: {e.filename or e}", err=True)
+    except (FileNotFoundError, IsADirectoryError, NotADirectoryError, PermissionError) as e:
+        typer.echo(f"cannot read input: {e.filename or e} ({type(e).__name__})", err=True)
         sys.exit(EXIT_VALIDATION)
     except OSError as e:  # EnvironmentError: CUDA/4-bit/offline model unavailable
         typer.echo(f"environment error: {e}", err=True)

@@ -89,10 +89,11 @@ Track D (ground truth + gold labels) ══════════════�
 
 *After M1, you can score responses from any model, as long as they are in French or English.*
 - `text/normalize.py`: L1 matching normalization with an offset map (NFKC, digit folding, diacritics, Arabic letter variants, punctuation), plus tokenization.
-- `text/numbers.py`: en/fr numbers, percents and money (`70 %`, `1 000,50 DH`, `1,000.50`, scale words), with locale ambiguity flags.
+- `text/numbers.py`: en/fr numbers, percents and money (`70 %`, `1 000,50 DH`, `1,000.50`, scale words) and en/fr number words (`soixante-dix pour cent`), with locale ambiguity flags.
+- `text/dates.py` and `text/citations.py` for French and English: numeric/ISO dates, month names, `article 12 de la loi 77-19`.
 - `text/lexicons.py` `find()` plus seed lexicons for en and fr: abstain, premise, hedge, filler, contrast.
 - `eval/extract.py`, `eval/match.py` (stages S1–S3, S5, the distinct-values rule, false denial), `eval/abstention.py`, `eval/confidence.py` (from stored logprobs), `outcomes.classify`, `detect_invalid`.
-- `FactualReliabilitySuite.score`; `slm-forge score` and `rescore`; a Markdown report for one checkpoint.
+- `FactualReliabilitySuite.score` and `summarize` (point estimates, bounds, macro, τ sweep); `protocol.build_protocol`; the `metrics.json` writer and JSON Schema; `slm-forge score` and `rescore`; a Markdown report for one checkpoint.
 - `tests/fixtures/scoring_cases.jsonl`: ≥ 150 hand-labelled (response → outcome) cases in en/fr, including the adversarial ones ("I don't know why people say 60%; it's 70%", "70 %, pas 80 %").
 - **Exit criteria:**
   - Outcome agreement with the fixtures ≥ 95%.
@@ -107,7 +108,7 @@ Track D (ground truth + gold labels) ══════════════�
   - left-padded, length-sorted batches grouped by bucket;
   - a **fresh** greedy `GenerationConfig`;
   - **teacher-forced** token logprobs with character spans.
-- `GenerationCache` (content-hash keys, resumable); `protocol.build_protocol`; the `metrics.json` writer and JSON Schema; `slm-forge eval`.
+- `GenerationCache` (content-hash keys, resumable); `slm-forge eval`.
 - **Exit criteria, on a tiny model on CPU in fp32:**
   - Logprobs match a manual forward pass within 1e-4.
   - batch_size 1 and 4 give identical outputs.
@@ -142,7 +143,7 @@ Track D (ground truth + gold labels) ══════════════�
   - `ryal`/`centime` conversions;
   - the two readings of `melyoun` (1,000,000 vs 10,000 DH);
   - Eastern Arabic digits and `٫`/`٬`.
-- Dates (Moroccan month names: `غشت`, `شتنبر`, `chtanbr`); legal citations (`الفصل 12`, `loi 31-08`, `l-fasl 12`); rule-based langid; language and script fidelity.
+- Darija/MSA forms of dates (Moroccan month names: `غشت`, `شتنبر`, `chtanbr`), legal citations (`الفصل 12`, `l-fasl 12`) and number words (`sb3in`, `سبعين`); rule-based langid; language and script fidelity.
 - Macro headline over the core buckets (`min_bucket_n = 30`), the Darija gap, the script gap, and cross-lingual consistency over `fact_id`.
 - **Exit criteria:**
   - ≥ 300 table-driven text cases (60+ per Darija script, 30+ code-switched).

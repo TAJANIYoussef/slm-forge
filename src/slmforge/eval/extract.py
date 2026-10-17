@@ -46,7 +46,12 @@ TURN_MARKERS: Final[tuple[str, ...]] = (
     "<|endoftext|>",
     "\nUser:",
     "\nQuestion:",
-    "\n### ",
+    # Leaked Alpaca-style turns only: a model may well put its answer under "### Final answer".
+    "\n### Instruction",
+    "\n### Input",
+    "\n### Human",
+    "\n### User",
+    "\n### Question",
 )
 
 # Final-answer markers, matched on the folded line (casefold, accents/harakat/hamza dropped,

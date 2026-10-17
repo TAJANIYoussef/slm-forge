@@ -26,8 +26,9 @@ entries:
 ```
 
 Rules:
+- **No pattern may match the empty string**, since it would fire on every response.
 - **Surface patterns must be written in L1 form.** L1 is casefolded, with no accents, harakat or hamza seats, `ة` written as `ه`, `ى` as `ي`, ASCII digits and ASCII quotes. The loader rejects any literal that could never match.
-- **Skeleton patterns need at least 4 literal characters.** Short skeletons collide: `momkin` and `makan` both reduce to `mkn`. Use a surface pattern for short cues.
+- **Skeleton patterns must match at least 4 characters** (minimum match width, so alternations and optional parts count as their shortest branch). Short skeletons collide: `momkin` and `makan` both reduce to `mkn`. Use a surface pattern for short cues.
 - **Approximation words** (`environ`, `تقريبا`, `t9riban`) are `hedge_kind: approximation`. They are recorded, but they do not count as a hedge, because "environ 70 %" still commits to a value.
 - **Domain disclaimers** ("ce n'est pas un conseil juridique") belong to `filler/` with category `disclaimer`. They neither hedge nor abstain.
 - **Policy refusals** ("I can't give legal advice") are abstentions with category `policy_refusal` and are reported separately.

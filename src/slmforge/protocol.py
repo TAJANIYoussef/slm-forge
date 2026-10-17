@@ -53,7 +53,7 @@ class Protocol(BaseModel):
     prompt_template_sha256: str
     prompt_mode: Literal["abstain_ok", "neutral"]
     # generation
-    generation_backend: Literal["hf", "vllm", "replay", "fake"]
+    generation_backend: Literal["hf", "vllm", "replay", "fake", "external"]  # external: `slm-forge score`
     decoding_sha256: str
     # scoring
     scoring_sha256: str  # the whole resolved ScoringConfig (matching switches, thresholds, weights)
@@ -68,6 +68,9 @@ class Protocol(BaseModel):
     alpha: float
     bootstrap_resamples: int
     seed: int
+    min_bucket_n: int = 30  # decides which buckets enter the macro headline
+    cluster_strata: tuple[str, ...] = ("answerable", "domain")
+    reference: str = "base"
     # data
     dataset_sha256: str
     split: str
@@ -114,7 +117,7 @@ def build_protocol(
     name: str = "default",
 ) -> Protocol:
     """Assemble the protocol from config, data and resource hashes (lexicons/templates default to cfg's)."""
-    todo("M2", "build_protocol")
+    todo("M1", "build_protocol")
 
 
 def _lock_document(protocol: Protocol) -> dict[str, Any]:

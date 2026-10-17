@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from slmforge.text.lexicons import LexiconError, LexiconSet, skeleton_literal_len
+from slmforge.text.lexicons import LexiconError, LexiconSet, regex_min_width
 from slmforge.text.numbers import UnitTable, UnitTableError, within
 from slmforge.types import LEX_BUCKETS
 
@@ -49,7 +49,11 @@ def _write(root: Path, body: str) -> Path:
             "invalid regex",
         ),
         ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, pattern: 'sûr'}\n", "L1"),
-        ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, skeleton: '\\bmkn\\b'}\n", "literal"),
+        ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, skeleton: '\\bmkn\\b'}\n", "match >="),
+        ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, skeleton: '(?:mkn|bl)'}\n", "match >="),
+        ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, pattern: 'a?'}\n", "empty string"),
+        ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, pattern: 'nooo'}\n", "letter runs"),
+        ("version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, pattern: 'it`s'}\n", "L1"),
         (
             "version: 1\nkind: abstain\nbucket: en\nentries:\n- {id: x, pattern: a}\n- {id: x, pattern: b}\n",
             "duplicate",
@@ -63,9 +67,12 @@ def test_lexicon_validation(tmp_path: Path, body: str, msg: str) -> None:
         LexiconSet.load(root=_write(tmp_path, body))
 
 
-def test_skeleton_literal_len() -> None:
-    assert skeleton_literal_len(r"\bm ?(?:kn ?)?Erft?C\b") == 8
-    assert skeleton_literal_len(r"\bmkn\b") == 3
+def test_regex_min_width() -> None:
+    assert regex_min_width(r"\bm ?(?:kn ?)?Erft?C\b") == 5
+    assert regex_min_width(r"\bmkn\b") == 3
+    assert regex_min_width(r"(?:mkn|bl)") == 2
+    assert regex_min_width(r"[mnkl]") == 1
+    assert regex_min_width(r"m?k?n?l?") == 0
 
 
 def test_units_load() -> None:

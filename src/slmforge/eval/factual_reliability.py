@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal
 from pydantic import BaseModel, ConfigDict
 
 from slmforge._stub import todo
-from slmforge.config.schema import ScoringConfig, StatsConfig
+from slmforge.config.schema import DEFAULT_UTILITY_WEIGHTS, ScoringConfig, StatsConfig
 from slmforge.eval.outcomes import ABSTAINED, ANSWERED, CORRECTS, WRONG, ItemResult, Outcome, reclassify
 from slmforge.types import CORE_BUCKETS
 
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from slmforge.text.lexicons import LexiconSet
     from slmforge.text.numbers import UnitTable
 
-SCORER_VERSION: Final = "1.0.0"
+SCORER_VERSION: Final = "1.1.0"
 CONF_UNAVAILABLE: Final = "CONF_UNAVAILABLE"
 DARIJA_SCRIPT_BUCKETS: Final[tuple[str, ...]] = ("darija_arab", "darija_latn")
 UNHEDGED_WRONG: Final = frozenset({Outcome.CONFABULATION, Outcome.WRONG_LOW_CONF})
@@ -131,11 +131,31 @@ class MetricSpec:
         )
         return (int(hit), 1)
 
+    def point_contribution(self, r: ItemResult) -> tuple[int, int]:
+        """Contribution to the point estimate.
+
+        An UNRESOLVED item counts as UNRESOLVED (neither correct nor erroneous), unless its
+        best and worst cases contribute the same, e.g. to ``coverage`` both are answered;
+        then that common contribution is used, so the point always lies within the bounds.
+        """
+        if r.outcome is Outcome.UNRESOLVED and self.substitutes:
+            best, worst = self.contribution(r, r.best_case), self.contribution(r, r.worst_case)
+            if best == worst:
+                return best
+        return self.contribution(r)
+
+    @property
+    def substitutes(self) -> bool:
+        """Whether UNRESOLVED items are substituted (not for metrics that count UNRESOLVED itself)."""
+        return not any(
+            s is not None and Outcome.UNRESOLVED in s for s in (self.num_outcomes, self.den_outcomes)
+        )
+
     def ratio(self, results: Sequence[ItemResult], *, conf_missing: bool | None = None) -> Ratio:
         """Point estimate over ``results``; ``conf_missing`` short-cuts :func:`conf_unavailable`."""
         num = den = 0
         for r in results:
-            n, d = self.contribution(r)
+            n, d = self.point_contribution(r)
             num += n
             den += d
         if self.conf_gated and (conf_unavailable(results) if conf_missing is None else conf_missing):
@@ -245,9 +265,7 @@ _HARMFUL: dict[str, Literal[1, -1]] = {
 HARMFUL_DIRECTION: Final[Mapping[str, Literal[1, -1]]] = MappingProxyType(_HARMFUL)
 """Sign of a harmful change (+1: an increase is harmful). raw_abstention_rate and hedge_rate have none."""
 
-DEFAULT_WEIGHTS: Final[Mapping[str, float]] = MappingProxyType(
-    dict(ScoringConfig.model_fields["weights"].default)
-)
+DEFAULT_WEIGHTS: Final[Mapping[str, float]] = DEFAULT_UTILITY_WEIGHTS
 UTILITY_KEYS: Final[frozenset[str]] = frozenset(
     {o.value for o in Outcome if o not in (Outcome.NON_ANSWER, Outcome.UNRESOLVED)}
     | {"non_answer_answerable", "non_answer_unanswerable"}
@@ -330,23 +348,9 @@ def utility(results: Sequence[ItemResult], weights: Mapping[str, float] = DEFAUL
 # --------------------------------------------------------------------------- bounds and tau
 
 
-def _policy_of(r: ItemResult) -> Literal["residual", "unresolved"]:
-    """The ``unanswerable_no_cue_policy`` an item was scored under, recovered from its decision rule.
-
-    The policy only matters for unanswerable items committed via residual content; those get
-    rule R4u (or R5 when truncated) under ``unresolved`` and R4 under ``residual``.
-    """
-    ev = r.evidence
-    if r.decision_rule == "R4u":
-        return "unresolved"
-    if r.decision_rule == "R5" and not r.answerable and ev.answered_signal and ev.answered_via == "residual":
-        return "unresolved"
-    return "residual"
-
-
 def at_tau(results: Sequence[ItemResult], tau: float) -> list[ItemResult]:
-    """Re-derive every outcome at ``tau`` from stored evidence, keeping each item's policy."""
-    return [reclassify(r, tau=tau, policy=_policy_of(r)) for r in results]
+    """Re-derive every outcome at ``tau`` from stored evidence (each item keeps its scoring policy)."""
+    return [reclassify(r, tau=tau) for r in results]
 
 
 # Ordering of (num, den) contributions by their effect on a ratio: adding (0, 1) never raises
@@ -362,10 +366,11 @@ def compute_bounds(
     tau: float | None = None,
     weights: Mapping[str, float] | None = None,
 ) -> tuple[float | None, float | None]:
-    """Lower/upper value after substituting each UNRESOLVED item's best or worst case.
+    """Lower/upper value over every best/worst substitution of the UNRESOLVED items.
 
-    ``tau`` re-derives outcomes first (:func:`at_tau`); ``weights`` applies to
-    ``reliability_utility``, whose bounds include every item (none is unresolved any more).
+    ``tau`` re-derives outcomes first (:func:`at_tau`). For ``reliability_utility`` the
+    substitution includes every item while the point estimate averages resolved items
+    only, so the returned interval is widened to contain the point estimate.
     """
     rs = list(results) if tau is None else at_tau(results, tau)
     if metric == UTILITY_METRIC:
@@ -377,25 +382,44 @@ def compute_bounds(
             vals = [_weight(w, r, o) for o in opts]
             lo.append(min(vals))
             hi.append(max(vals))
-        return (Ratio(math.fsum(lo), len(lo)).value, Ratio(math.fsum(hi), len(hi)).value)
+        low_v, high_v = Ratio(math.fsum(lo), len(lo)).value, Ratio(math.fsum(hi), len(hi)).value
+        point = utility(rs, w)
+        if point is not None and low_v is not None and high_v is not None:
+            low_v, high_v = min(low_v, point), max(high_v, point)
+        return (low_v, high_v)
     spec = _spec(metric)
     if spec.conf_gated and conf_unavailable(rs):
         return (None, None)
     lo_n = lo_d = hi_n = hi_d = 0
+    any_hit_option = any_miss_option = False  # an UNRESOLVED option contributing (1, 1) / (0, 1)
     for r in rs:
-        if r.outcome is Outcome.UNRESOLVED:
+        if r.outcome is Outcome.UNRESOLVED and spec.substitutes:
             contribs = (spec.contribution(r, r.best_case), spec.contribution(r, r.worst_case))
             low, high = min(contribs, key=_RANK.__getitem__), max(contribs, key=_RANK.__getitem__)
+            any_hit_option |= (1, 1) in contribs
+            any_miss_option |= (0, 1) in contribs
         else:
             low = high = spec.contribution(r)
         lo_n, lo_d, hi_n, hi_d = lo_n + low[0], lo_d + low[1], hi_n + high[0], hi_d + high[1]
-    return (Ratio(lo_n, lo_d).value, Ratio(hi_n, hi_d).value)
+    low_v, high_v = Ratio(lo_n, lo_d).value, Ratio(hi_n, hi_d).value
+    # The rank order maximizes/minimizes the ratio but may leave the denominator empty. Then the
+    # extreme over *defined* substitutions is reached by including a single forced option.
+    if low_v is None and any_hit_option:
+        low_v = 1.0  # every option that enters the denominator is a hit
+    if high_v is None and any_miss_option:
+        high_v = 0.0  # every option that enters the denominator is a miss
+    return (low_v, high_v)
 
 
-def tau_sweep(results: Sequence[ItemResult], taus: Sequence[float]) -> dict[float, float | None]:
-    """``confabulation_rate`` at each tau, re-derived from stored evidence (non-increasing in tau)."""
+def tau_key(tau: float) -> str:
+    """Canonical JSON key for a tau value (``0.0 -> "0"``, ``0.5 -> "0.5"``)."""
+    return format(float(tau), "g")
+
+
+def tau_sweep(results: Sequence[ItemResult], taus: Sequence[float]) -> dict[str, float | None]:
+    """``confabulation_rate`` at each tau (keys from :func:`tau_key`); non-increasing in tau."""
     spec = METRICS["confabulation_rate"]
-    return {float(t): spec.ratio(at_tau(results, t)).value for t in taus}
+    return {tau_key(t): spec.ratio(at_tau(results, t)).value for t in taus}
 
 
 # --------------------------------------------------------------------------- buckets and macro
@@ -608,5 +632,9 @@ class FactualReliabilitySuite:
         stats: StatsConfig,
         subsample_ids: Collection[str] | None = None,
     ) -> ReliabilitySummary:
-        """Micro/macro/bucket rates with CIs and bounds, calibration, tau sweep, gaps, flags."""
-        todo("M5", "FactualReliabilitySuite.summarize")
+        """Micro/macro/bucket rates with CIs and bounds, calibration, tau sweep, gaps, flags.
+
+        M1 fills point estimates, bounds, macro, tau sweep and flags that need no resampling;
+        M5 adds the cluster-bootstrap CIs and calibration.
+        """
+        todo("M1", "FactualReliabilitySuite.summarize")

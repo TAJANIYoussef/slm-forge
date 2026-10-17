@@ -56,6 +56,7 @@ class ChatRecord(BaseModel):
     messages: list[dict[str, str]] = Field(min_length=1)
     language: Language | None = None
     script: Script | None = None
+    reviewed: bool = True  # distilled records are written with reviewed=false until a human checks them
     domain: str | None = None
     provenance: dict[str, Any] = {}
 

@@ -21,9 +21,12 @@ slm-forge protocol show -c configs/eval/factual-reliability.yaml
 # 2. Tune only on the dev split (lexicons, tau, weights), then freeze
 slm-forge protocol lock -c configs/eval/factual-reliability.yaml --out configs/protocols/fr-v1.lock.json
 
-# 3. Point the eval config at the lock and commit both
-#    eval:
+# 3. Point the eval config at the lock and commit both. In the standalone eval config
+#    (configs/eval/factual-reliability.yaml) the key is top level:
 #      protocol_lock: configs/protocols/fr-v1.lock.json
+#    In a run config (configs/<model>.yaml) it sits under the eval: section:
+#      eval:
+#        protocol_lock: configs/protocols/fr-v1.lock.json
 ```
 
 ## Conventions

@@ -72,3 +72,22 @@ def test_stub_exits_with_not_implemented(tmp_path: Path, repo_root: Path) -> Non
     res = subprocess.run(cmd, capture_output=True, text=True)
     assert res.returncode == EXIT_NOT_IMPLEMENTED, res.stderr
     assert "[M" in res.stderr
+
+
+def _run(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([sys.executable, "-m", "slmforge.cli", *args], capture_output=True, text=True)
+
+
+def test_exit_codes_for_bad_inputs(tmp_path: Path, repo_root: Path) -> None:
+    from slmforge.cli import EXIT_USAGE
+
+    gt = str(repo_root / "data/eval/ground_truth.sample.jsonl")
+    bad_set = _run(
+        "score", "--responses", gt, "--ground-truth", gt, "--out", str(tmp_path), "--set", "novalue"
+    )
+    assert bad_set.returncode == EXIT_USAGE, bad_set.stderr
+    a_dir = _run("data", "validate", str(tmp_path))
+    assert a_dir.returncode == EXIT_VALIDATION, a_dir.stderr
+    bad_yaml = tmp_path / "bad.yaml"
+    bad_yaml.write_text("run: [unclosed\n", encoding="utf-8")
+    assert _run("finetune", "-c", str(bad_yaml)).returncode == EXIT_VALIDATION

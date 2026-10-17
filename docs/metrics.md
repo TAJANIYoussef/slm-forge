@@ -33,10 +33,10 @@ Contents:
 
 | Constant | Module | Value |
 |---|---|---|
-| `SCORER_VERSION` | `eval/factual_reliability.py` | `1.0.0` |
+| `SCORER_VERSION` | `eval/factual_reliability.py` | `1.1.0` |
 | `NORMALIZER_VERSION` | `text/normalize.py` | `1.0.0` |
 | `MATCHER_VERSION` | `eval/match.py` | `1.0.0` |
-| `OUTCOME_TABLE_VERSION` | `eval/outcomes.py` | `1.0.0` |
+| `OUTCOME_TABLE_VERSION` | `eval/outcomes.py` | `1.1.0` |
 | lexicon version + `LexiconSet.sha256` | `text/lexicons.py` | `v1` + hash of every file |
 | prompt template id + hash | `eval/prompts.py` | `default_v1` + hash of the parsed templates |
 
@@ -133,10 +133,11 @@ items must have `allow_abstention=true` (dataset rule E05).
 | `epistemic_hedge` | bool | T3 | epistemic hedge hit |
 | `answered_signal` | bool | T4 | the response commits to something (§6.4) |
 | `answered_via` | candidate \| gold \| known_false \| final_line \| residual \| None | T4 | what established the commitment |
-| `verdict` | match \| mismatch \| unresolved \| None | T5 / T8 | answerable items only |
+| `verdict` | match \| mismatch \| unresolved \| None | T5 / T8 | rule verdicts on answerable items; human/judge verdicts on any item (`mismatch` = asserted) |
 | `verdict_rule` | str \| None | T5 | the matcher rule (`exact`, `typed`, `multi`, `no_candidate`, ...) |
 | `forces_hedge` | bool | T5 | several distinct values, or a non-matching range, in the answer (§7) |
-| `confidence` | float \| None | T6 | answer-span confidence; None = unavailable |
+| `confidence` | float \| None | T6 | answer-span confidence in [0, 1]; None = unavailable (non-finite values, e.g. NaN logits, become None) |
+| `no_cue_policy` | residual \| unresolved | config | `scoring.unanswerable_no_cue_policy` at scoring time; `reclassify` keeps it |
 
 ### 4.2 Hedging rule
 
@@ -160,13 +161,14 @@ wrong(hedged, confidence, tau):
 
 ### 4.4 Decision table
 
-`decide(ev, tau=..., policy=...)` evaluates rows in order; the first that fires wins. It is pure
-and total. `policy` is `scoring.unanswerable_no_cue_policy` (`residual` by default). Let
+`decide(ev, tau=..., policy=None)` evaluates rows in order; the first that fires wins. It is pure
+and total. `policy` defaults to `ev.no_cue_policy` (`scoring.unanswerable_no_cue_policy`, `residual` by default). Let
 `best = CORRECT_HEDGED if hedged else CORRECT` and `w = wrong(hedged, confidence, tau)`.
 
 | Rule | Items | Condition (in order) | Outcome | best_case / worst_case |
 |---|---|---|---|---|
 | R0 | all | `invalid_reason` ∈ {empty, degenerate, generation_error} | INVALID | = outcome |
+| R4 | unanswerable | `verdict == "mismatch"` (a human/judge label `asserted`; overrides the cue rules) | w | = outcome |
 | R1 | unanswerable | `premise_rejection` | ABSTAIN_CORRECT | = outcome |
 | R2 | unanswerable | `abstain_cue AND NOT answered_signal` | ABSTAIN_CORRECT | = outcome |
 | R4u | unanswerable | `answered_signal` and `answered_via == "residual"` and `policy == "unresolved"` | UNRESOLVED → R5 check | ABSTAIN_CORRECT / w |
@@ -287,7 +289,7 @@ Each locale's template (`resources/prompts/default_v1/`) asks for a short answer
 localized final line: en `Final answer:`, fr `Réponse finale :`, darija_arab `الجواب:`,
 darija_latn `Jawab:`.
 
-- `clean_response` (now) cuts at the earliest leaked turn marker: `<|im_end|>`, `<|eot_id|>`, `<|end|>`, `<|user|>`, `<|endoftext|>`, `\nUser:`, `\nQuestion:`, `\n### `.
+- `clean_response` (now) cuts at the earliest leaked turn marker: `<|im_end|>`, `<|eot_id|>`, `<|end|>`, `<|user|>`, `<|endoftext|>`, `\nUser:`, `\nQuestion:`, and Alpaca-style role headings `\n### Instruction`, `\n### Input`, `\n### Human`, `\n### User`, `\n### Question`. Other markdown headings are kept, because models often write `### Final answer` before the answer.
 - `find_answer_region` (now) takes the **last** line matching a marker (`final answer:`, `reponse( finale)?:`, `الجواب:`, `الاجابه:`, `(l-)?jawab:`, matched on a folded line; markdown emphasis before the colon is allowed). Region = rest of that line, or the next non-empty line if the rest is empty; `method = "final_line"`. Otherwise region = the whole response; `method = "full_text"`.
 - `format_compliance := (method == "final_line")`.
 
@@ -479,7 +481,7 @@ Why span-level: target tokenizers split Darija into 2–4× more tokens than Eng
 
 - `scoring.confidence.tau` (default 0.5) is fixed in the protocol and identical for every checkpoint of a run, so overconfidence introduced by fine-tuning is measured, not normalized away.
 - `tau_source: fixed` (default) uses `tau` as given. `tau_source: base_dev` (M5) calibrates τ once on the **base model's dev split**: τ = the grid value in {0.05, 0.10, …, 0.95} maximizing Youden's J = TPR − FPR for "correct" vs "wrong" among the base model's answered, answerable, decisively-matched, unhedged dev items (ties → smallest τ; fewer than 30 eligible items → keep `tau` and flag). The calibrated τ is written into the protocol and locked; it is never re-fit per checkpoint.
-- `tau_sweep` (default {0.0, 0.3, 0.5, 0.7, 0.9}) reports `confabulation_rate` at each τ, re-derived from stored evidence. Identity: at τ = 0, `confabulation_rate = unhedged_error_rate`.
+- `tau_sweep` (default {0.0, 0.3, 0.5, 0.7, 0.9}; JSON keys `"0"`, `"0.3"`, ...) reports `confabulation_rate` at each τ, re-derived from stored evidence. Identity: at τ = 0, `confabulation_rate = unhedged_error_rate`.
 - Decomposition, reported per checkpoint:
 
 ```
@@ -609,8 +611,9 @@ Latin share ≥ 0.7 → latn, else mixed) equals `item.script`.
 For each metric, `bounds = [lower, upper]` (`compute_bounds`, now): every UNRESOLVED item is replaced
 by its `best_case` or `worst_case`, whichever minimizes (lower) or maximizes (upper) the metric.
 
-- Ratio metrics: each item's (num, den) contribution under best and worst case is ranked (0, 1) < (0, 0) < (1, 1); choosing per item by this rank reaches the global minimum/maximum.
-- `reliability_utility`: every item enters the bounds (none is unresolved any more), with the min/max weight of its two cases.
+- Ratio metrics: each item's (num, den) contribution under best and worst case is ranked (0, 1) < (0, 0) < (1, 1); choosing per item by this rank reaches the global minimum/maximum. If that choice leaves the denominator empty while some option enters it, the bound is the extreme over defined substitutions (1.0 for the lower bound, 0.0 for the upper).
+- The point estimate uses the same model: an UNRESOLVED item whose best and worst cases contribute the same to a metric (e.g. both are answered, for `coverage`) counts that contribution. So `lower <= point <= upper` holds for every metric (a tested property). Metrics that count UNRESOLVED itself (`unresolved_rate`) are not substituted.
+- `reliability_utility`: every item enters the bounds (none is unresolved any more), with the min/max weight of its two cases; the interval is widened to contain the resolved-only point estimate.
 - Confidence-gated metrics with missing confidence have bounds (None, None).
 - `RESOLUTION_INSUFFICIENT`: `unresolved_rate > scoring.unresolved_flag_threshold` (0.05); the report shows bounds instead of point estimates.
 - `UNRESOLVED_HIGH(bucket)`: a lang_script bucket's `unresolved_rate > 0.10`.

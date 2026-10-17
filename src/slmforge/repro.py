@@ -5,7 +5,9 @@ CUDA/GPU provenance) only do so when ``torch`` is **already** in ``sys.modules``
 import it, so calling them from the scoring core or the CLI cannot load the ML stack.
 
 Hashes are hex SHA-256 over :func:`canonical_json`, so the same value always hashes the
-same way regardless of dict order, path separators or ``Decimal`` formatting.
+same way regardless of dict order or path separators. ``Decimal`` keeps its exact
+representation (``1.50`` and ``1.5`` differ); data models that need value equality
+canonicalize first (``eval.dataset.canonical_decimal``).
 """
 
 from __future__ import annotations

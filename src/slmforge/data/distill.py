@@ -111,11 +111,14 @@ _PII_RE: Final = re.compile(
     # RIB: bank 3 + city 3 + account 16 + key 2 digits, plain or grouped 3-3-(4x4)-2.
     r"|(?P<rib>(?<!\d)\d{3}[ -]?\d{3}[ -]?\d{4}(?:[ -]?\d{4}){3}[ -]?\d{2}(?!\d))"
     # Phones: +212 / 00212 / 0, then 5-7 and 8 digits (plain, in pairs, or 3-3-3).
-    r"|(?P<phone>(?<![\d+])(?:\+212[ .-]?(?:\(0\)[ .-]?)?|00212[ .-]?|0)[5-7]"
+    r"|(?P<phone>(?<![\d+(])(?:\(?(?:\+|00)212\)?[ .-]?(?:\(0\)[ .-]?)?|0)[5-7]"
     r"(?:(?:[ .-]?\d{2}){4}|\d{2}[ .-]?\d{3}[ .-]?\d{3})(?!\d))"
     # CIN (carte d'identite nationale): 1-2 capital letters and 5-6 digits.
-    r"|(?P<cin>\b[A-Z]{1,2}\d{5,6}\b)"
+    r"|(?P<cin>(?<![A-Za-z0-9])[A-Z]{1,2}\d{5,6}(?![A-Za-z0-9]))"
 )
+
+
+_SPACE_FOLD: Final = str.maketrans({"\u00a0": " ", "\u202f": " ", "\u2007": " ", "\u2009": " "})
 
 
 def redact_pii(text: str) -> tuple[str, list[str]]:
@@ -132,7 +135,9 @@ def redact_pii(text: str) -> tuple[str, list[str]]:
     kinds: list[str] = []
     parts: list[str] = []
     last = 0
-    for m in _PII_RE.finditer(fold_digits(text)):
+    # One char per char, so offsets stay aligned: Arabic-Indic digits and typographic spaces
+    # (NBSP, NNBSP, figure and thin spaces, common in French-formatted numbers) are folded.
+    for m in _PII_RE.finditer(fold_digits(text).translate(_SPACE_FOLD)):
         kind = m.lastgroup or "cin"
         kinds.append(kind)
         parts += [text[last : m.start()], PII_PLACEHOLDERS[kind]]
@@ -235,7 +240,8 @@ class DistilledDataRejected(ValueError):
     """A distilled file was offered as eval ground truth or judge labels."""
 
 
-def _is_distilled(obj: Any) -> bool:
+def is_distilled_record(obj: Any) -> bool:
+    """Whether a parsed JSONL record carries ``provenance.kind == "distilled"`` (top level or ``meta``)."""
     if not isinstance(obj, dict):
         return False
     for holder in (obj, obj.get("meta")):
@@ -250,20 +256,21 @@ def assert_not_distilled(path: Path) -> None:
 
     A file is refused if any JSONL record carries ``provenance.kind == "distilled"`` (at
     the top level or under ``meta``), or if a ``distill_manifest.json`` next to it lists
-    this exact file (by SHA-256) as its output. Unparseable lines are left to the
-    dataset validator.
+    this exact file (by SHA-256) as its output. A line that does not parse is refused when
+    it mentions ``"distilled"`` at all, so a malformed record cannot slip through.
     """
     path = Path(path)
     raw = path.read_bytes()
-    for n, line in enumerate(raw.decode("utf-8-sig").splitlines(), start=1):
+    # Split on "\n" only: U+2028/U+2029/U+0085 are legal inside JSON strings.
+    for n, line in enumerate(raw.decode("utf-8-sig").split("\n"), start=1):
         line = line.strip()
         if not line or line.startswith("//"):
             continue
         try:
             obj = json.loads(line)
         except json.JSONDecodeError:
-            continue
-        if _is_distilled(obj):
+            obj = {"provenance": {"kind": "distilled"}} if '"distilled"' in line else None
+        if is_distilled_record(obj):
             raise DistilledDataRejected(
                 f"{path}: line {n} has provenance.kind=distilled; teacher output never enters eval sets or "
                 "judge labels"

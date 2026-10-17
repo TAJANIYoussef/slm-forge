@@ -92,3 +92,33 @@ def test_dump_resolved_roundtrip(tmp_path: Path) -> None:
     out = tmp_path / "resolved.yaml"
     dump_resolved(cfg, out)
     assert load_root_config(out) == cfg
+
+
+def test_partial_dict_overrides_merge_over_defaults() -> None:
+    cfg = load_eval_config(
+        None,
+        ["scoring.weights.confabulation=-2.0", "generation.max_new_tokens.en=64"],
+        ground_truth=Path("g"),
+    )
+    assert cfg.scoring.weights["confabulation"] == -2.0
+    assert cfg.scoring.weights["correct"] == 1.0  # untouched defaults survive
+    assert cfg.generation.max_new_tokens["en"] == 64 and cfg.generation.max_new_tokens["default"] == 128
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        "scoring.weights.confabulaton=-1",
+        "scoring.weights.correct=.nan",
+        "generation.max_new_tokens.en=0",
+        "generation.max_new_tokens.klingon=10",
+    ],
+)
+def test_dict_override_validation(override: str) -> None:
+    with pytest.raises(ValidationError):
+        load_eval_config(None, [override], ground_truth=Path("g"))
+
+
+def test_cli_ground_truth_wins_over_set() -> None:
+    cfg = load_eval_config(None, ["ground_truth=from_set.jsonl"], ground_truth=Path("from_cli.jsonl"))
+    assert cfg.ground_truth == Path("from_cli.jsonl")

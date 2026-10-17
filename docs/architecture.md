@@ -16,7 +16,7 @@ src/slmforge/
 ├── cli.py                      typer app; lazy imports; exception -> exit code mapping              M0
 ├── types.py                    shared Literals and constants (buckets, answer types, reasons)      M0
 ├── repro.py                    canonical hashing, provenance, seeding, RNG preservation, offline   M0
-├── protocol.py                 Protocol (everything that changes a score), lock, drift             M0 (lock); build: M2
+├── protocol.py                 Protocol (everything that changes a score), lock, drift             M0 (lock); build: M1
 ├── config/
 │   ├── schema.py               pydantic models: RootConfig, EvalConfig, DistillConfig, ...         M0
 │   └── load.py                 YAML loading, --set dotted overrides, ${VAR} expansion, dump        M0
@@ -24,8 +24,8 @@ src/slmforge/
 │   ├── normalize.py            L0/L1 normalization with offset map, tokens, script profile         M1; clitics: M4
 │   ├── arabizi.py              Arabizi digit roles, cross-script consonant skeleton (L2)           M4
 │   ├── numbers.py              quantities, units, multipliers, tolerance check (within)            M1 (en/fr); M4 (Darija/MSA)
-│   ├── dates.py                partial dates incl. Moroccan/Arabizi month names                    M4
-│   ├── citations.py            article/instrument references (article 12, الفصل 12, loi 31-08)     M4
+│   ├── dates.py                partial dates incl. Moroccan/Arabizi month names                    M1 (fr/en); M4
+│   ├── citations.py            article/instrument references (article 12, الفصل 12, loi 31-08)     M1 (fr/en); M4
 │   ├── langid.py               rule-based Darija/MSA/fr/en identification; optional GlotLID        M4; GlotLID: M8
 │   └── lexicons.py             versioned cue lexicons: load/validate/hash (M0), find (M1)          M1
 ├── resources/                  package data, versioned and hashed into the protocol
@@ -64,7 +64,7 @@ src/slmforge/
 │   ├── review.py               review queue export/import, VerdictCache (SQLite)                   M7
 │   ├── judge.py                detector validation gates (M7); LocalHFJudge (M9)                   M7, M9
 │   ├── suites.py               suite registry, resolved lazily                                     M0
-│   └── runner.py               EvalRunner: eval / eval-run / score / rescore, metrics.json, flags  M2, M3, M5
+│   └── runner.py               EvalRunner: eval / eval-run / score / rescore, metrics.json, flags  M1, M2, M3, M5
 ├── diagnostics/
 │   └── tokenizer.py            tokenizer fertility, byte fallback, Arabizi digit isolation         M8
 └── report/

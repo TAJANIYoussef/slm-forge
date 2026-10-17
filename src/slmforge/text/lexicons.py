@@ -28,6 +28,11 @@ from typing import Any, Final, Literal, cast, get_args
 
 import yaml
 
+try:  # the regex parser, for minimum match widths
+    from re import _parser as _re_parser  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover - Python < 3.11
+    import sre_parse as _re_parser
+
 from slmforge._stub import todo
 from slmforge.text.normalize import l1_char_problem
 from slmforge.types import LEX_BUCKETS, LexBucket, Span
@@ -40,8 +45,7 @@ MIN_SKELETON_CHARS: Final = 4  # shorter skeletons collide (momkin/makan -> mkn)
 _ENTRY_KEYS: Final = frozenset(
     {"id", "category", "strength", "hedge_kind", "pattern", "skeleton", "unless_followed_by", "note"}
 )
-# Regex syntax stripped before counting a skeleton pattern's literal characters.
-_REGEX_SYNTAX_RE: Final = re.compile(r"\\[bBdDsSwWAZ]|\(\?[:!=<]+|[\\^$.|?*+()\[\]{}\s]|\d")
+_LETTER_RUN_RE: Final = re.compile(r"([^\W\d_])\1{2,}")
 
 
 class LexiconError(ValueError):
@@ -88,9 +92,10 @@ class LexiconSet:
     def load(cls, version: str = "v1", *, root: Path | None = None, extra: Sequence[Path] = ()) -> LexiconSet:
         """Load and validate a lexicon version (packaged unless ``root`` is given) plus extra files.
 
-        Validation: known keys only, unique ids, regexes compile, surface patterns are in L1
-        form, skeleton patterns have >= 4 literal characters, hedge entries declare a
-        hedge_kind. The hash covers every file's relative path and bytes, in sorted order.
+        Validation: known keys only, unique ids, regexes compile, no pattern matches the empty
+        string, surface patterns are in L1 form, skeleton patterns match >= 4 characters, hedge
+        entries declare a hedge_kind. The hash covers every file's relative path and bytes, in
+        sorted order.
         """
         base: Traversable = (
             files("slmforge").joinpath("resources", "lexicons", version) if root is None else root
@@ -104,7 +109,8 @@ class LexiconSet:
                     sources.append((f"{kind_dir.name}/{f.name}", f.read_bytes()))
         if not sources:
             raise LexiconError(f"no lexicon files found for version {version!r} under {base}")
-        sources += [(f"extra/{Path(p).name}", Path(p).read_bytes()) for p in extra]
+        extras = sorted((f"extra/{Path(p).name}", Path(p).read_bytes()) for p in extra)
+        sources += extras  # sorted so the hash does not depend on the order extras are passed
         return _build(version, sources)
 
     def find(
@@ -144,9 +150,12 @@ def _compile(label: str, where: str, src: Any) -> re.Pattern[str]:
     if not isinstance(src, str) or not src:
         raise _fail(label, f"{where} must be a non-empty regex string")
     try:
-        return re.compile(src)
+        compiled = re.compile(src)
     except re.error as e:
         raise _fail(label, f"{where}: invalid regex {src!r}: {e}") from None
+    if compiled.search("") is not None:
+        raise _fail(label, f"{where}: {src!r} matches the empty string, so it would fire on every response")
+    return compiled
 
 
 def _check_l1_regex(label: str, where: str, src: str) -> None:
@@ -159,10 +168,15 @@ def _check_l1_regex(label: str, where: str, src: str) -> None:
         if ch == "\\":
             escaped = True
             continue
-        if ch.isascii() and not ch.isupper():
-            continue
         if problem := l1_char_problem(ch):
             raise _fail(label, f"{where}: {ch!r} can never appear in L1 text ({problem})")
+    _check_no_letter_runs(label, where, src)
+
+
+def _check_no_letter_runs(label: str, where: str, text: str) -> None:
+    """L1 collapses runs of >= 3 identical letters ("bzzzaf" -> "bzaf"), so such literals never match."""
+    if m := _LETTER_RUN_RE.search(text):
+        raise _fail(label, f"{where}: {m.group()!r} can never appear in L1 text (letter runs collapse)")
 
 
 def _check_l1_word(label: str, where: str, word: Any) -> str:
@@ -171,12 +185,14 @@ def _check_l1_word(label: str, where: str, word: Any) -> str:
     for ch in word:
         if problem := l1_char_problem(ch):
             raise _fail(label, f"{where}: {word!r} is not in L1 form ({ch!r}: {problem})")
+    _check_no_letter_runs(label, where, word)
     return word
 
 
-def skeleton_literal_len(src: str) -> int:
-    """Literal characters in a skeleton regex (syntax and digits removed); a collision heuristic."""
-    return len(_REGEX_SYNTAX_RE.sub("", src))
+def regex_min_width(src: str) -> int:
+    """Shortest string a regex can match. Alternations, classes and optional runs are
+    accounted for, so ``(?:mkn|bl)`` is 2 and ``m?k?n?l?`` is 0."""
+    return int(_re_parser.parse(src).getwidth()[0])
 
 
 def _build(version: str, sources: Sequence[tuple[str, bytes]]) -> LexiconSet:
@@ -243,10 +259,10 @@ def _build(version: str, sources: Sequence[tuple[str, bytes]]) -> LexiconSet:
                 _check_l1_regex(label, f"{eid}.pattern", raw["pattern"])
                 pattern = _compile(label, f"{eid}.pattern", raw["pattern"])
             if raw.get("skeleton"):
-                if skeleton_literal_len(raw["skeleton"]) < MIN_SKELETON_CHARS:
+                if regex_min_width(raw["skeleton"]) < MIN_SKELETON_CHARS:
                     raise _fail(
                         label,
-                        f"{eid}: skeleton patterns need >= {MIN_SKELETON_CHARS} literal characters; "
+                        f"{eid}: skeleton patterns must match >= {MIN_SKELETON_CHARS} characters; "
                         "use a surface pattern instead",
                     )
                 skeleton = _compile(label, f"{eid}.skeleton", raw["skeleton"])

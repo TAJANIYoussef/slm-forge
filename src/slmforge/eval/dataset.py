@@ -29,9 +29,10 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_serializer, model_validator
 
 from slmforge._stub import todo
+from slmforge.text.normalize import normalize_light
 from slmforge.types import (
     NUMERIC_TYPES,
     AnswerType,
@@ -50,8 +51,18 @@ class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
 
+def canonical_decimal(d: Decimal) -> str:
+    """One string per numeric value (``70``, ``70.0`` and ``7E+1`` all give ``"70"``), for hashing."""
+    s = format(d.normalize(), "f")
+    return "0" if s in ("-0", "0") else s
+
+
 class NumericSpec(_Model):
     """Gold quantity with tolerances: ``|a - g| <= max(abs_tol, rel_tol * |g|)``."""
+
+    @field_serializer("value", "abs_tol", "rel_tol", when_used="json")
+    def _canonical_decimals(self, d: Decimal) -> str:
+        return canonical_decimal(d)
 
     value: Decimal
     unit: str | None = None  # "%", "MAD", "EUR", "USD", "days", "months", "years" or None
@@ -130,9 +141,11 @@ class GroundTruthItem(_Model):
         if not isinstance(data, dict) or "schema_version" in data or "id" in data:
             return data
         data = dict(data)
-        key = f"{' '.join(str(data.get('prompt', '')).casefold().split())}|{data.get('language')}"
+        prompt = normalize_light(str(data.get("prompt", ""))).casefold()  # NFC: editor re-saves keep the id
+        key = f"{prompt}|{data.get('language')}"
         data["id"] = "legacy-" + hashlib.sha256(key.encode()).hexdigest()[:12]
-        data["tags"] = [*data.get("tags", []), "legacy"]
+        tags = data.get("tags", [])
+        data["tags"] = [*tags, "legacy"] if isinstance(tags, list) else tags  # pydantic reports bad types
         return data
 
     @model_validator(mode="after")
@@ -304,8 +317,20 @@ def _rule_code(msg: str) -> str:
     return m.group(1) if m else "E01"
 
 
+def split_jsonl(text: str) -> list[str]:
+    """Split JSONL on ``\n`` only. ``str.splitlines`` would also break on U+2028/U+2029/U+0085,
+    which are legal raw characters inside JSON strings."""
+    return [line.removesuffix("\r") for line in text.split("\n")]
+
+
 def parse_lines(lines: Sequence[str]) -> tuple[list[GroundTruthItem], list[DatasetIssue]]:
-    """Parse JSONL lines into items, collecting per-line issues instead of stopping."""
+    """Parse JSONL lines into items, collecting per-line issues instead of stopping.
+
+    E15: records carrying ``provenance.kind == "distilled"`` (top level or under ``meta``) are
+    teacher output and never enter eval ground truth.
+    """
+    from slmforge.data.distill import is_distilled_record
+
     items: list[GroundTruthItem] = []
     issues: list[DatasetIssue] = []
     for n, raw in enumerate(lines, start=1):
@@ -317,9 +342,23 @@ def parse_lines(lines: Sequence[str]) -> tuple[list[GroundTruthItem], list[Datas
         except json.JSONDecodeError as e:
             issues.append(DatasetIssue("error", "E01", f"invalid JSON: {e.msg}", line=n))
             continue
+        if is_distilled_record(obj):
+            issues.append(
+                DatasetIssue(
+                    "error",
+                    "E15",
+                    "distilled (teacher) record in eval ground truth",
+                    line=n,
+                    item_id=obj.get("id") if isinstance(obj, dict) else None,
+                )
+            )
+            continue
         try:
             item = GroundTruthItem.model_validate(obj)
-        except ValidationError as e:
+        except (TypeError, ValueError) as e:
+            if not isinstance(e, ValidationError):
+                issues.append(DatasetIssue("error", "E01", f"invalid record: {e}", line=n))
+                continue
             for err in e.errors():
                 msg = str(err.get("msg", ""))
                 loc = ".".join(str(p) for p in err.get("loc", ()))
@@ -336,7 +375,7 @@ def parse_lines(lines: Sequence[str]) -> tuple[list[GroundTruthItem], list[Datas
                     )
                 )
             continue
-        if "legacy" in item.tags and "schema_version" not in obj:
+        if isinstance(obj, dict) and "id" not in obj and "schema_version" not in obj:
             issues.append(DatasetIssue("warning", "W01", "legacy record upgraded; derived id", n, item.id))
         items.append(item)
     return items, issues
@@ -375,9 +414,16 @@ def load_ground_truth(
     path: Path, *, strict: bool = False, allowed_domains: Collection[str] | None = None
 ) -> GroundTruthSet:
     """Parse and validate a ground-truth file; raise :class:`GroundTruthError` on errors."""
+    from slmforge.data.distill import DistilledDataRejected, assert_not_distilled
+
     text = Path(path).read_text(encoding="utf-8-sig")
-    items, issues = parse_lines(text.splitlines())
+    items, issues = parse_lines(split_jsonl(text))
     issues += validate_set(items, allowed_domains=allowed_domains)
+    try:
+        assert_not_distilled(Path(path))  # also catches files listed in a sibling distill_manifest.json
+    except DistilledDataRejected as e:
+        if not any(i.code == "E15" for i in issues):
+            issues.append(DatasetIssue("error", "E15", str(e)))
     if strict:
         issues = [DatasetIssue("error", i.code, i.message, i.line, i.item_id) for i in issues]
     if any(i.level == "error" for i in issues):

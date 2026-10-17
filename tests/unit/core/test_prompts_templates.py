@@ -192,3 +192,11 @@ def test_missing_bucket_file(custom_root: Path) -> None:
 def test_template_id_is_validated(bad_id: str) -> None:
     with pytest.raises(ValueError):
         PromptTemplateSet.load(bad_id)
+
+
+@pytest.mark.parametrize("bad", ["{question:>10}", "{question!r}", "{question:{question}}", "{question[0]}"])
+def test_format_specs_rejected(bad: str) -> None:
+    from slmforge.eval.prompts import _format_fields
+
+    with pytest.raises(ValueError):
+        _format_fields(f"Q: {bad}")

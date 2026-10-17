@@ -10,7 +10,6 @@ import pytest
 from slmforge.eval.factual_reliability import (
     CONF_UNAVAILABLE,
     METRICS,
-    PRIMARY_METRICS,
     compute_bounds,
     compute_point_metrics,
     group_by,
@@ -117,8 +116,8 @@ EXPECTED = {
     "confabulation_rate": (3, 20),
     "abstention_rate": (3, 6),
     "selective_accuracy": (5, 9),
-    "coverage": (9, 14),
-    "hedge_rate": (3, 11),  # CORRECT_HEDGED + 2 WRONG_HEDGED among 11 answered
+    "coverage": (10, 14),  # the UNRESOLVED item is answered in its best and worst case
+    "hedge_rate": (3, 12),  # CORRECT_HEDGED + 2 WRONG_HEDGED among 11 answered + the UNRESOLVED one
     "unhedged_error_rate": (4, 20),
     "error_rate": (6, 20),
     "confabulation_rate_answerable": (2, 14),
@@ -182,22 +181,46 @@ def test_utility() -> None:
 
 
 def test_bounds_contain_point_and_use_best_worst() -> None:
-    for name in (*PRIMARY_METRICS, "unhedged_error_rate", "reliability_utility"):
-        point = compute_point_metrics(TOY)[name].value
+    point_metrics = compute_point_metrics(TOY)
+    for name in (*METRICS, "reliability_utility"):
+        point = point_metrics[name].value
         lo, hi = compute_bounds(TOY, name)
-        assert lo is not None and hi is not None and lo <= hi
-        if name != "reliability_utility":
-            assert lo <= point <= hi
+        if point is None:
+            continue
+        assert lo is not None and hi is not None, name
+        assert lo <= point <= hi, (name, lo, point, hi)
     # the UNRESOLVED answerable item is CORRECT at best and CONFABULATION at worst
     assert compute_bounds(TOY, "factual_accuracy") == (5 / 14, 6 / 14)
     assert compute_bounds(TOY, "confabulation_rate") == (3 / 20, 4 / 20)
+
+
+def _unresolved(i: int, **ev: object) -> ItemResult:
+    return make(i, atype="entity", verdict="unresolved", verdict_rule="no_candidate", **ev)
+
+
+def test_bounds_regressions_from_review() -> None:
+    confab = [make(i, atype="entity", **WRONG_HI) for i in range(3)]
+    rs = [*confab, _unresolved(3, epistemic_hedge=True, answered_signal=True)]
+    # coverage: both cases of the UNRESOLVED item are answered, so the point counts it as answered
+    assert compute_point_metrics(rs)["coverage"].value == 1.0
+    assert compute_bounds(rs, "coverage") == (1.0, 1.0)
+    hedge = compute_point_metrics(rs)["hedge_rate"].value
+    lo, hi = compute_bounds(rs, "hedge_rate")
+    assert lo <= hedge <= hi
+    u_lo, u_hi = compute_bounds(rs, "reliability_utility")
+    assert u_lo <= utility(rs) <= u_hi
+    # only an UNRESOLVED item can enter the denominator: a defined bound, not None
+    lone = [_unresolved(0, answered_signal=True, confidence=0.9)]
+    lo, hi = compute_bounds(lone, "confab_given_answered")
+    assert (lo, hi) == (0.0, 1.0)
 
 
 def test_tau_sweep_monotone_and_tau0_identity() -> None:
     sweep = tau_sweep(TOY, [0.0, 0.3, 0.5, 0.7, 0.95])
     vals = list(sweep.values())
     assert all(a >= b for a, b in itertools.pairwise(vals))
-    assert sweep[0.0] == compute_point_metrics(TOY)["unhedged_error_rate"].value
+    assert sweep["0"] == compute_point_metrics(TOY)["unhedged_error_rate"].value
+    assert list(sweep) == ["0", "0.3", "0.5", "0.7", "0.95"]
 
 
 def test_macro_excludes_small_buckets() -> None:

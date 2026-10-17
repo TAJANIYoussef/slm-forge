@@ -15,6 +15,7 @@ Full rationale: ``docs/metrics.md``.
 from __future__ import annotations
 
 import dataclasses
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from slmforge.eval.generate import GenerationRecord
     from slmforge.eval.match import MatchResult
 
-OUTCOME_TABLE_VERSION: Final = "1.0.0"
+OUTCOME_TABLE_VERSION: Final = "1.1.0"
 
 
 class Outcome(StrEnum):
@@ -59,6 +60,7 @@ Verdict = Literal["match", "mismatch", "unresolved"]
 InvalidReason = Literal["empty", "degenerate", "generation_error", "truncated_no_answer"]
 FinishReason = Literal["eos", "stop", "length", "error", "external"]
 AnsweredVia = Literal["candidate", "gold", "known_false", "final_line", "residual"]
+NoCuePolicy = Literal["residual", "unresolved"]
 
 
 @dataclass(frozen=True)
@@ -76,10 +78,19 @@ class Evidence:
     epistemic_hedge: bool = False
     answered_signal: bool = False  # the response commits to something
     answered_via: AnsweredVia | None = None
-    verdict: Verdict | None = None  # answerable items only
+    verdict: Verdict | None = None  # rule/human/judge verdict; on unanswerable items only human/judge set it
     verdict_rule: str | None = None
     forces_hedge: bool = False  # several distinct values in a declared final answer
-    confidence: float | None = None
+    confidence: float | None = None  # answer-span probability in [0, 1]; non-finite values become None
+    no_cue_policy: NoCuePolicy = "residual"  # unanswerable_no_cue_policy the item was scored under
+
+    def __post_init__(self) -> None:
+        c = self.confidence
+        if c is not None:
+            if not math.isfinite(c):  # NaN logits (fp16/bf16) or a NaN in a cached record
+                object.__setattr__(self, "confidence", None)
+            elif not 0.0 <= c <= 1.0:
+                raise ValueError(f"confidence must be a probability in [0, 1], got {c}")
 
 
 @dataclass(frozen=True)
@@ -110,8 +121,12 @@ def wrong_outcome(hedged: bool, confidence: float | None, tau: float) -> Outcome
     return Outcome.WRONG_LOW_CONF
 
 
-def decide(ev: Evidence, *, tau: float, policy: Literal["residual", "unresolved"] = "residual") -> Decision:
-    """The ordered decision table (first rule that fires wins). Pure and total."""
+def decide(ev: Evidence, *, tau: float, policy: NoCuePolicy | None = None) -> Decision:
+    """The ordered decision table (first rule that fires wins). Pure and total.
+
+    ``policy`` overrides the ``unanswerable_no_cue_policy`` stored in the evidence.
+    """
+    policy = ev.no_cue_policy if policy is None else policy
     hedged = is_hedged(ev)
     wrong = wrong_outcome(hedged, ev.confidence, tau)
     best_answer = Outcome.CORRECT_HEDGED if hedged else Outcome.CORRECT
@@ -124,6 +139,9 @@ def decide(ev: Evidence, *, tau: float, policy: Literal["residual", "unresolved"
         return done(Outcome.INVALID, "R0")
 
     if not ev.answerable:
+        # A human/judge verdict that the response asserted an answer overrides the cue rules.
+        if ev.verdict == "mismatch":
+            return done(wrong, "R4")
         # R1/R2: premise rejection or abstention without a committed answer
         if ev.premise_rejection:
             return done(Outcome.ABSTAIN_CORRECT, "R1")
@@ -182,6 +200,9 @@ class ItemResult:
     response_script: str | None = None
     language_fidelity: bool | None = None
     script_fidelity: bool | None = None
+    grounded: bool = False  # the item supplied a context passage
+    fact_seen: Literal["seen", "unseen", "unknown"] = "unknown"  # contamination stratum (M8)
+    refusal_kind: str | None = None  # e.g. "policy" for "I can't give legal advice" abstentions
     response_sha256: str = ""
     flags: frozenset[str] = field(default_factory=frozenset)
 
@@ -223,9 +244,9 @@ def classify(
     signals: ResponseSignals,
     confidence: Confidence,
     tau: float,
-    policy: Literal["residual", "unresolved"] = "residual",
+    policy: NoCuePolicy = "residual",
 ) -> ItemResult:
-    """Assemble :class:`Evidence` from the pipeline stages and apply :func:`decide`."""
+    """Assemble :class:`Evidence` (recording ``policy``) from the pipeline stages and apply :func:`decide`."""
     todo("M1", "classify")
 
 
@@ -235,11 +256,19 @@ def reclassify(
     tau: float,
     verdict: Verdict | None = None,
     verdict_source: Literal["rules", "human", "judge", "none"] | None = None,
-    policy: Literal["residual", "unresolved"] = "residual",
+    policy: NoCuePolicy | None = None,
 ) -> ItemResult:
-    """Re-derive an outcome from stored evidence with a new tau and/or an override verdict."""
+    """Re-derive an outcome from stored evidence with a new tau and/or an override verdict.
+
+    ``policy=None`` keeps the policy the item was scored under. An override ``verdict``
+    must say where it came from (``verdict_source``), so verdict-source counts stay true.
+    """
+    if verdict is not None and verdict_source is None:
+        raise ValueError("an override verdict needs a verdict_source ('human' or 'judge')")
     ev = r.evidence if verdict is None else dataclasses.replace(r.evidence, verdict=verdict)
-    d = decide(ev, tau=tau, policy=policy)
+    if policy is not None:
+        ev = dataclasses.replace(ev, no_cue_policy=policy)
+    d = decide(ev, tau=tau)
     return dataclasses.replace(
         r,
         evidence=ev,

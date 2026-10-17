@@ -129,3 +129,44 @@ def test_filter_by_split(tmp_path: Path) -> None:
     gt = load_ground_truth(p)
     assert [i.id for i in gt.filter(splits=("test",)).items] == ["fin-fr-0001"]
     assert len(gt.filter(splits=("all",))) == 2
+
+
+def test_unicode_line_separators_inside_strings(tmp_path: Path) -> None:
+    rows = [{**BASE, "prompt": "Quel est le ratio ?"}, {**BASE, "id": "fin-fr-0002", "prompt": "x\u0085y"}]
+    p = tmp_path / "gt.jsonl"
+    p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows), encoding="utf-8")
+    assert len(load_ground_truth(p)) == 2
+
+
+def test_distilled_records_are_rejected(tmp_path: Path) -> None:
+    p = tmp_path / "gt.jsonl"
+    p.write_text(json.dumps({**BASE, "meta": {"provenance": {"kind": "distilled"}}}), encoding="utf-8")
+    with pytest.raises(GroundTruthError) as exc:
+        load_ground_truth(p)
+    assert [i.code for i in exc.value.issues] == ["E15"]
+
+
+def test_bad_legacy_tags_do_not_crash() -> None:
+    legacy = {"prompt": "q?", "expected_answer": "70%", "language": "fr", "tags": None}
+    items, issues = parse_lines([json.dumps(legacy)])
+    assert not items and issues and issues[0].level == "error"
+
+
+def test_w01_only_for_derived_ids() -> None:
+    explicit = {**BASE, "tags": ["legacy"]}
+    _, issues = parse_lines([json.dumps(explicit)])
+    assert issues == []
+
+
+def test_legacy_id_is_stable_under_unicode_normalization() -> None:
+    import unicodedata
+
+    base = {"expected_answer": "70%", "language": "fr"}
+    nfc = parse_lines([json.dumps({**base, "prompt": unicodedata.normalize("NFC", "Prêt réservé ?")})])[0]
+    nfd = parse_lines([json.dumps({**base, "prompt": unicodedata.normalize("NFD", "Prêt réservé ?")})])[0]
+    assert nfc[0].id == nfd[0].id
+
+
+def test_equal_numeric_values_hash_equally() -> None:
+    a, b = item(numeric={"value": 70, "unit": "%"}), item(numeric={"value": "70.0", "unit": "%"})
+    assert a == b and a.content_hash == b.content_hash

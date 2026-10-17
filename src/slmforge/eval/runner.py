@@ -255,7 +255,7 @@ class EvalRunner:
     @property
     def protocol(self) -> Protocol:
         """Built lazily from the config and ground truth; checked against ``cfg.protocol_lock`` if set."""
-        todo("M2", "EvalRunner.protocol")
+        todo("M1", "EvalRunner.protocol")
 
     def eval_checkpoint(
         self,
@@ -282,11 +282,11 @@ class EvalRunner:
 
     def score_external(self, responses: Path, *, out_dir: Path) -> CheckpointMetrics:
         """Score an ``{item_id, response}`` JSONL from any pipeline (no model, no torch)."""
-        todo("M2", "EvalRunner.score_external")
+        todo("M1", "EvalRunner.score_external")
 
     def rescore(self, eval_dir: Path, *, tau: float | None = None) -> CheckpointMetrics:
         """CPU-only rescore from ``generations.jsonl`` (lexicons, tau, human verdicts); never regenerates."""
-        todo("M2", "EvalRunner.rescore")
+        todo("M1", "EvalRunner.rescore")
 
     def estimate_cost(self, n_checkpoints: int, *, generator: Generator | None = None) -> CostEstimate:
         """Plan §4.5 cost model: generations, token upper bounds, seconds from a cached throughput probe."""
@@ -305,17 +305,17 @@ def refuse_fake_in_run_dir(generator: Generator, out_dir: Path) -> None:
 
 def write_metrics(metrics: CheckpointMetrics, path: Path) -> Path:
     """Write ``metrics.json`` (UTF-8, sorted keys, stable float formatting)."""
-    todo("M2", "write_metrics")
+    todo("M1", "write_metrics")
 
 
 def read_metrics(path: Path) -> CheckpointMetrics:
     """Load and validate a ``metrics.json``."""
-    todo("M2", "read_metrics")
+    todo("M1", "read_metrics")
 
 
 def metrics_json_schema() -> dict[str, Any]:
     """JSON Schema of ``metrics.json`` (exported to docs and validated in tests)."""
-    todo("M2", "metrics_json_schema")
+    todo("M1", "metrics_json_schema")
 
 
 # --------------------------------------------------------------------------- comparisons and flags

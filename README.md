@@ -6,7 +6,8 @@ A lightweight, reproducible fine-tuning and evaluation harness for small languag
 
 ```
 slm-forge finetune --config configs/qwen2.5-7b-darija.yaml
-slm-forge eval --checkpoint runs/qwen2.5-7b-darija/checkpoint-500 --suite factual-reliability
+slm-forge eval --checkpoint runs/qwen2.5-7b-darija/checkpoint-500 --suite factual-reliability \
+               --ground-truth data/eval/ground_truth.jsonl
 ```
 
 ---
@@ -92,6 +93,7 @@ All fine-tuned models run and are evaluated locally. Teacher-model API calls are
 git clone https://github.com/TAJANIYoussef/slm-forge.git
 cd slm-forge
 
+uv venv && source .venv/bin/activate  # or: python -m venv .venv && source .venv/bin/activate
 uv pip install -e ".[dev]"            # torch-free core: validate, score, rescore, report
 uv pip install -e ".[dev,hf]"         # + generation and HF/PEFT LoRA training
 uv pip install -e ".[dev,hf,qlora,unsloth]"   # + QLoRA via Unsloth (NVIDIA CUDA)
@@ -196,17 +198,17 @@ slm-forge/
 │   │   ├── numbers.py            #   locale-aware quantities, tolerances       [M1/M4]
 │   │   ├── lexicons.py           #   versioned abstention/hedge/premise cues   [M1]
 │   │   ├── arabizi.py            #   digit roles, cross-script skeleton        [M4]
-│   │   └── dates.py citations.py langid.py                                    [M4]
+│   │   └── dates.py citations.py langid.py   # fr/en [M1], Darija/MSA + langid [M4]
 │   ├── resources/                # lexicons/v1, prompts/default_v1, units, months, number words
 │   ├── eval/
 │   │   ├── dataset.py            # ground-truth schema + validation
 │   │   ├── outcomes.py           # outcome taxonomy + decision table
-│   │   ├── factual_reliability.py  # metric table, bounds, macro, suite        [M1/M5]
+│   │   ├── factual_reliability.py  # metric table, bounds, macro, suite [M1]; CIs [M5]
 │   │   ├── extract.py match.py abstention.py confidence.py                   [M1]
 │   │   ├── generate.py           # generation contract, fake/replay generators, cache [M2]
 │   │   ├── generate_hf.py        # HF generator + teacher-forced logprobs     [M2]
 │   │   ├── prompts.py checkpoints.py                                          [M2]
-│   │   ├── runner.py             # eval / eval-run / score / rescore           [M2/M3]
+│   │   ├── runner.py             # score/rescore [M1], eval [M2], eval-run [M3]
 │   │   ├── stats.py calibration.py  # cluster bootstrap, Holm, McNemar, ECE    [M5]
 │   │   ├── review.py judge.py    # human review loop, validation gates        [M7]
 │   │   └── task_metrics.py generate_vllm.py suites.py                         [M8/M9]
