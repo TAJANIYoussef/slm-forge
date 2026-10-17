@@ -181,31 +181,43 @@ Full reference and validation rules: [docs/dataset.md](docs/dataset.md).
 
 ## Project structure
 
+Milestones in brackets say when each module gets implemented ([ROADMAP.md](ROADMAP.md)). Today every module exists with typed signatures, and stubs raise `NotImplementedYet("M<k>")`.
+
 ```
 slm-forge/
 ├── src/slmforge/
-│   ├── cli.py                    # Entry point: slm-forge
-│   ├── config/
-│   │   └── schema.py             # Training/eval config schema
-│   ├── data/
-│   │   ├── loader.py             # Dataset loading + formatting
-│   │   └── distill.py            # Optional teacher-model distillation data prep
-│   ├── train/
-│   │   └── lora.py               # LoRA/QLoRA fine-tuning (Unsloth backend)
+│   ├── cli.py                    # `slm-forge` entry point (lazy imports, exit codes)
+│   ├── types.py  _stub.py        # shared literals; milestone stub marker
+│   ├── repro.py                  # canonical hashing, provenance, seeds, offline mode
+│   ├── protocol.py               # protocol fingerprint + lock (pre-registration)
+│   ├── config/                   # pydantic schema + YAML loader (--set overrides)
+│   ├── text/                     # torch-free multilingual text layer
+│   │   ├── normalize.py          #   L0/L1 normalization, script profiles      [M1]
+│   │   ├── numbers.py            #   locale-aware quantities, tolerances       [M1/M4]
+│   │   ├── lexicons.py           #   versioned abstention/hedge/premise cues   [M1]
+│   │   ├── arabizi.py            #   digit roles, cross-script skeleton        [M4]
+│   │   └── dates.py citations.py langid.py                                    [M4]
+│   ├── resources/                # lexicons/v1, prompts/default_v1, units, months, number words
 │   ├── eval/
-│   │   ├── dataset.py            # ground_truth.jsonl loader
-│   │   ├── factual_reliability.py  # Confabulation/accuracy/abstention scoring
-│   │   ├── task_metrics.py       # Standard task metrics (accuracy, F1, BLEU/ROUGE)
-│   │   └── runner.py             # Per-checkpoint and per-run eval orchestration
-│   └── report/
-│       └── render.py             # Markdown/HTML report generation
-├── configs/                      # Example training configs
-├── tests/
-│   ├── unit/
-│   └── integration/
-└── data/
-    └── eval/
-        └── ground_truth.jsonl    # Labeled factual-reliability eval set
+│   │   ├── dataset.py            # ground-truth schema + validation
+│   │   ├── outcomes.py           # outcome taxonomy + decision table
+│   │   ├── factual_reliability.py  # metric table, bounds, macro, suite        [M1/M5]
+│   │   ├── extract.py match.py abstention.py confidence.py                   [M1]
+│   │   ├── generate.py           # generation contract, fake/replay generators, cache [M2]
+│   │   ├── generate_hf.py        # HF generator + teacher-forced logprobs     [M2]
+│   │   ├── prompts.py checkpoints.py                                          [M2]
+│   │   ├── runner.py             # eval / eval-run / score / rescore           [M2/M3]
+│   │   ├── stats.py calibration.py  # cluster bootstrap, Holm, McNemar, ECE    [M5]
+│   │   ├── review.py judge.py    # human review loop, validation gates        [M7]
+│   │   └── task_metrics.py generate_vllm.py suites.py                         [M8/M9]
+│   ├── data/                     # loader + masking [M3], contamination [M8], distill [M9]
+│   ├── train/                    # lora.py, callbacks.py, targets.py, backends/{hf_peft,unsloth} [M3/M6]
+│   ├── report/                   # Markdown [M1/M3] and HTML+SVG [M5] reports
+│   └── diagnostics/tokenizer.py  # tokenizer coverage per bucket              [M8]
+├── configs/                      # Qwen2.5-7B, Phi-4-mini, Mistral-7B, SmolLM2-1.7B, tiny CPU, eval, distill
+├── data/eval/ground_truth.sample.jsonl   # 24 fictional items across 4 language/script buckets
+├── docs/                         # metrics, dataset, architecture, annotation, distillation terms
+└── tests/unit/core/              # torch-free unit tests (CI: core-minimal job)
 ```
 
 ---
