@@ -150,20 +150,23 @@ def lock_protocol(protocol: Protocol, path: Path, *, overwrite: bool = False) ->
     """
     path = Path(path)
     if path.exists() and not overwrite:
-        existing = _read_lock(path)
-        if existing == protocol:
+        drift = _read_lock(path).diff(protocol)
+        if not drift:
             return
-        raise ProtocolDrift(existing.diff(protocol), lock_path=path)
+        raise ProtocolDrift(drift, lock_path=path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(_lock_document(protocol), indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-                   encoding="utf-8")
+    tmp.write_text(
+        json.dumps(_lock_document(protocol), indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     tmp.replace(path)
 
 
 def load_locked(path: Path, *, live: Protocol | None = None) -> Protocol:
     """Return the locked protocol, or raise :class:`ProtocolDrift` if ``live`` differs from it."""
     locked = _read_lock(path)
-    if live is not None and live != locked:
-        raise ProtocolDrift(locked.diff(live), lock_path=Path(path))
+    drift = locked.diff(live) if live is not None else {}
+    if drift:
+        raise ProtocolDrift(drift, lock_path=Path(path))
     return locked

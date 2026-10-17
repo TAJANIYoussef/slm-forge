@@ -42,15 +42,32 @@ Eval identity lives in the protocol (``slmforge.protocol``), not in the training
 """
 
 TRACKED_PACKAGES: Final[tuple[str, ...]] = (
-    "torch", "transformers", "peft", "trl", "accelerate", "tokenizers", "safetensors", "bitsandbytes",
-    "unsloth", "unsloth_zoo", "vllm", "numpy", "pydantic", "rapidfuzz", "sacrebleu",
+    "torch",
+    "transformers",
+    "peft",
+    "trl",
+    "accelerate",
+    "tokenizers",
+    "safetensors",
+    "bitsandbytes",
+    "unsloth",
+    "unsloth_zoo",
+    "vllm",
+    "numpy",
+    "pydantic",
+    "rapidfuzz",
+    "sacrebleu",
 )
 """Distributions whose versions are recorded in every manifest and ``metrics.json`` (None if absent)."""
 
 OFFLINE_ENV_VARS: Final[tuple[str, ...]] = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE")
 CUBLAS_WORKSPACE: Final = ":4096:8"
 DEFAULT_DIR_PATTERNS: Final[tuple[str, ...]] = (
-    "*.safetensors", "adapter_config.json", "config.json", "tokenizer*.json", "*.jinja",
+    "*.safetensors",
+    "adapter_config.json",
+    "config.json",
+    "tokenizer*.json",
+    "*.jinja",
 )
 _TRUTHY: Final = frozenset({"1", "true", "yes", "on"})
 
@@ -107,7 +124,9 @@ def canonical_json(obj: Any) -> str:
     Sets become sorted lists, tuples lists, enums their value, pydantic models and dataclasses
     their fields. Non-finite floats and unknown types raise, because they have no stable form.
     """
-    return json.dumps(_jsonable(obj), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    return json.dumps(
+        _jsonable(obj), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    )
 
 
 def sha256_text(s: str) -> str:
@@ -154,7 +173,9 @@ def _drop_dotted(d: dict[str, Any], dotted: str) -> None:
         node.pop(leaf, None)
 
 
-def config_sha256(cfg: BaseModel | Mapping[str, Any], *, exclude: Collection[str] = NON_SEMANTIC_FIELDS) -> str:
+def config_sha256(
+    cfg: BaseModel | Mapping[str, Any], *, exclude: Collection[str] = NON_SEMANTIC_FIELDS
+) -> str:
     """``sha256(canonical_json(model_dump(mode='json') minus the excluded dotted paths)))``.
 
     Hash the config *after* ``--set`` overrides and env expansion, i.e. the resolved model.

@@ -26,3 +26,4 @@ data/distilled/
 .idea/
 .vscode/
 .DS_Store
+.venv-hf/

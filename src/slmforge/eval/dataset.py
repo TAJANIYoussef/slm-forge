@@ -69,7 +69,8 @@ class DateSpec(_Model):
     @property
     def granularity(self) -> Literal["year", "month", "day"]:
         """Finest component present."""
-        return ("year", "month", "day")[self.value.count("-")]  # type: ignore[return-value]
+        levels: tuple[Literal["year", "month", "day"], ...] = ("year", "month", "day")
+        return levels[self.value.count("-")]
 
 
 class CitationSpec(_Model):

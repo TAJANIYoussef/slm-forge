@@ -1,0 +1,60 @@
+# QLoRA fine-tune of Mistral-7B-Instruct-v0.3 on Darija/French/English chat data.
+#
+# Mistral's chat template rejects a system role: prompts fold the system text into the first
+# user turn (eval.prompts fallback). The tokenizer has no pad token: a distinct pad id is chosen
+# without resizing the vocabulary, and labels come from assistant masks (EOS is always trained).
+schema_version: 1
+
+run:
+  name: mistral-7b-darija
+  output_dir: runs
+  seed: 1234
+
+model:
+  name_or_path: mistralai/Mistral-7B-Instruct-v0.3
+  revision: null             # pin a 40-char commit SHA for a citable run
+  dtype: bf16
+  max_seq_length: 2048
+  attn_implementation: sdpa
+
+quant:
+  load_in_4bit: true
+  quant_type: nf4
+  double_quant: true
+  compute_dtype: bf16
+
+lora:
+  r: 16
+  alpha: 32
+  target_modules: auto       # mistral: q/k/v/o_proj + gate/up/down_proj
+
+data:
+  train:
+    - {path: data/train/darija_finance.jsonl, format: chat}
+    - {path: data/train/fr_legal.jsonl, format: alpaca}
+  eval_loss: data/dev/mixed_dev.jsonl
+  language_sampling_alpha: 0.5
+  abstention_mix: {path: data/train/unanswerable.jsonl, ratio: 0.05}
+  contamination_guard: {policy: error}
+
+train:
+  backend: auto
+  max_steps: 1000
+  per_device_batch_size: 2
+  grad_accum: 8
+  lr: 1.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+  optim: paged_adamw_8bit
+  save_steps: 100
+  save_total_limit: null
+  logging_steps: 10
+
+eval:
+  ground_truth: data/eval/ground_truth.jsonl
+  split: test
+  # Inline eval stays off for 7B models on 16 GB GPUs (KV cache ~128 KB/token in bf16 on top of
+  # optimizer state); eval-run runs after training in a separate process.
+  schedule: {mode: posthoc, every_n_steps: 200}
+  subsample: {fraction: 0.25, min_per_stratum: 20, seed: 7}
+  generation: {batch_size: 8, quantization: match_training}

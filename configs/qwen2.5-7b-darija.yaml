@@ -1,0 +1,83 @@
+# QLoRA fine-tune of Qwen2.5-7B-Instruct on Darija/French/English finance and legal chat data,
+# with factual reliability evaluated every 200 steps.
+#
+#   slm-forge finetune --config configs/qwen2.5-7b-darija.yaml --dry-run   # validate + plan
+#   slm-forge finetune --config configs/qwen2.5-7b-darija.yaml
+#
+# Needs an NVIDIA CUDA GPU (4-bit + paged 8-bit optimizer); without one the run exits with code 3.
+# For 16-bit LoRA on CPU/MPS: --backend hf_peft --set quant.load_in_4bit=false --set train.optim=adamw_torch
+schema_version: 1
+
+run:
+  name: qwen2.5-7b-darija
+  output_dir: runs
+  seed: 1234
+  data_seed: null            # null -> seed
+  strict_determinism: false
+
+model:
+  name_or_path: Qwen/Qwen2.5-7B-Instruct
+  revision: null             # pin a 40-char commit SHA for a citable run (a branch name only warns)
+  dtype: bf16
+  max_seq_length: 2048
+  chat_template: auto
+  attn_implementation: sdpa  # recorded: eager and sdpa differ numerically
+  trust_remote_code: false
+  # Base Qwen2.5 sets pad == eos: labels come from assistant masks, never from the pad id.
+
+quant:
+  load_in_4bit: true
+  quant_type: nf4
+  double_quant: true
+  compute_dtype: bf16
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.0
+  target_modules: auto       # qwen2: q/k/v/o_proj + gate/up/down_proj
+
+data:
+  train:                     # your data; data/train/sample_chat.jsonl shows the chat format
+    - {path: data/train/darija_finance.jsonl, format: chat}
+    - {path: data/train/fr_legal.jsonl, format: alpaca}
+  eval_loss: data/dev/mixed_dev.jsonl   # held-out chat data; needed for the TRADEOFF flag
+  completion_only_loss: true
+  language_sampling_alpha: 0.5          # p_l ∝ n_l^0.5: upsample the Darija buckets
+  sampling_key: lang_script
+  abstention_mix: {path: data/train/unanswerable.jsonl, ratio: 0.05}
+  contamination_guard: {policy: error, ngram_n: 8, ngram_threshold: 0.5}   # ground_truth: eval.ground_truth
+
+train:
+  backend: auto              # unsloth on CUDA when installed, hf_peft otherwise
+  max_steps: 1000
+  per_device_batch_size: 2
+  grad_accum: 8
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+  optim: paged_adamw_8bit
+  gradient_checkpointing: true
+  save_steps: 100
+  save_total_limit: null     # keep every adapter for the trend
+  logging_steps: 10
+
+eval:
+  ground_truth: data/eval/ground_truth.jsonl
+  split: test
+  protocol_lock: null        # set after `slm-forge protocol lock` (see configs/protocols/README.md)
+  offline: true
+  schedule: {mode: posthoc, every_n_steps: 200, include_base: true, include_final: true, after_training: true}
+  subsample: {fraction: 0.25, min_per_stratum: 20, seed: 7, full_at: [base, final]}
+  generation:
+    backend: hf
+    prompt_template: default_v1
+    prompt_mode: abstain_ok
+    batch_size: 16
+    quantization: match_training
+    max_new_tokens: {default: 128, en: 96, fr: 112, darija_latn: 160, darija_arab: 192, darija_mixed: 192}
+  scoring:
+    unanswerable_no_cue_policy: residual
+    confidence: {tau: 0.5, tau_source: fixed, tau_sweep: [0.0, 0.3, 0.5, 0.7, 0.9]}
+  stats: {bootstrap_resamples: 2000, alpha: 0.05, headline: macro, min_bucket_n: 30}
+  judge: {enabled: false}

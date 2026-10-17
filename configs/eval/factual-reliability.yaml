@@ -1,0 +1,86 @@
+# Standalone factual-reliability eval config (an EvalConfig, no training sections), for scoring
+# external checkpoints or responses:
+#
+#   slm-forge eval --checkpoint Qwen/Qwen2.5-7B-Instruct@<sha> --config configs/eval/factual-reliability.yaml
+#   slm-forge score --responses responses.jsonl --ground-truth data/eval/ground_truth.jsonl --out eval_out/x \
+#       --config configs/eval/factual-reliability.yaml
+#
+# Every value that changes a score is part of the protocol hash; results with different
+# protocols are never mixed in one table.
+schema_version: 1
+suite: [factual-reliability]
+ground_truth: data/eval/ground_truth.jsonl
+split: test                  # only dev may be used to tune lexicons, tau or weights
+require_reviewed: false
+allowed_domains: [finance, legal, general]
+protocol_lock: null          # e.g. configs/protocols/fr-v1.lock.json once locked (configs/protocols/README.md)
+offline: true
+seed: 1234
+
+schedule:                    # used by eval-run only
+  mode: posthoc
+  every_n_steps: null        # null -> every saved checkpoint
+  include_base: true
+  include_final: true
+
+subsample:
+  fraction: null             # null -> the full set at every checkpoint
+  min_per_stratum: 20
+  seed: 7
+  full_at: [base, final]
+
+generation:
+  backend: hf
+  prompt_template: default_v1
+  prompt_mode: abstain_ok    # neutral: robustness run without the "you may say you don't know" line
+  batch_size: 16
+  dtype: auto
+  quantization: match_training
+  device: auto
+  max_new_tokens: {default: 128, en: 96, fr: 112, darija_latn: 160, darija_arab: 192, darija_mixed: 192}
+  stop_strings: []
+  cache: true
+
+scoring:
+  lexicon_version: v1
+  extra_lexicons: []
+  matching:
+    accept_locale_ambiguity: true
+    darija_money_scale: true
+    colloquial_units: true
+    skeleton_enabled: true
+    skeleton_threshold: 0.85
+    skeleton_review_band: 0.70
+  min_content_tokens: 4
+  unanswerable_no_cue_policy: residual
+  confidence:
+    tau: 0.5
+    tau_source: fixed
+    tau_sweep: [0.0, 0.3, 0.5, 0.7, 0.9]
+    first_k: 32
+  unresolved_flag_threshold: 0.05
+
+stats:
+  bootstrap_resamples: 2000
+  alpha: 0.05
+  cluster_strata: [answerable, domain]
+  reference: base
+  primary_metrics: [factual_accuracy, confabulation_rate, abstention_rate]
+  headline: macro
+  min_bucket_n: 30
+
+flags:
+  hedge_inflation_pts: 0.10
+  over_abstention_pts: 0.10
+  degeneration_pts: 0.05
+  language_drift_pts: 0.10
+  format_compliance_min: 0.80
+  stale_months: 18
+  tradeoff_signal: eval_loss
+
+judge:
+  enabled: false             # local judge for UNRESOLVED items only, after validation (M9)
+  allow_remote: false
+
+verdict_cache: runs/_shared/verdicts.sqlite
+report_formats: [md, html]

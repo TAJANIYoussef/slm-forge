@@ -1,0 +1,12 @@
+# Prompt template default_v1, French. Same format fields as en.yaml.
+schema_version: 1
+system: >-
+  Vous êtes un assistant rigoureux. Répondez à la question de façon brève et exacte.
+  Terminez votre réponse par une ligne qui commence par « {marker} », suivie uniquement de la réponse.
+abstention_instruction: >-
+  Si vous ne connaissez pas la réponse, ou si la question repose sur une prémisse fausse,
+  dites-le clairement au lieu de deviner (par exemple : « {canonical_abstention} »).
+final_answer_marker: "Réponse finale :"
+user_template: "{context_block}{question}"
+context_template: "Utilisez le contexte suivant :\n{context}\n\n"
+canonical_abstention: "Je ne sais pas."

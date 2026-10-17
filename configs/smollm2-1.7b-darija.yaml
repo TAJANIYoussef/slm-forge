@@ -1,0 +1,55 @@
+# 16-bit LoRA fine-tune of SmolLM2-1.7B-Instruct (model_type llama): small enough for a single
+# consumer GPU without 4-bit, and for hf_peft on Apple Silicon (MPS) with a smaller batch.
+#
+# Also the model of the GPU smoke test (Unsloth vs hf_peft parity).
+schema_version: 1
+
+run:
+  name: smollm2-1.7b-darija
+  output_dir: runs
+  seed: 1234
+
+model:
+  name_or_path: HuggingFaceTB/SmolLM2-1.7B-Instruct
+  revision: null             # pin a 40-char commit SHA for a citable run
+  dtype: bf16
+  max_seq_length: 2048
+  attn_implementation: sdpa
+
+quant:
+  load_in_4bit: false
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: auto       # llama: q/k/v/o_proj + gate/up/down_proj
+
+data:
+  train:
+    - {path: data/train/darija_finance.jsonl, format: chat}
+    - {path: data/train/fr_legal.jsonl, format: alpaca}
+  eval_loss: data/dev/mixed_dev.jsonl
+  language_sampling_alpha: 0.5
+  abstention_mix: {path: data/train/unanswerable.jsonl, ratio: 0.05}
+  contamination_guard: {policy: error}
+
+train:
+  backend: auto
+  max_steps: 600
+  per_device_batch_size: 8
+  grad_accum: 2
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+  optim: adamw_torch
+  save_steps: 50
+  save_total_limit: null
+  logging_steps: 10
+
+eval:
+  ground_truth: data/eval/ground_truth.jsonl
+  split: test
+  schedule: {mode: posthoc, every_n_steps: 100}
+  subsample: {fraction: 0.5, min_per_stratum: 20, seed: 7}
+  generation: {batch_size: 32, quantization: none}

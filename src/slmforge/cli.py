@@ -295,7 +295,7 @@ def validate_detectors(
     from slmforge.eval.judge import validate_components
 
     cfg = _eval_config(config, None, None) if config else None
-    report_ = validate_components(labels, cfg=cfg)  # type: ignore[call-arg]
+    report_ = validate_components(labels, cfg=cfg, gates=cfg.gates) if cfg else validate_components(labels)
     typer.echo(report_)
     if not all(c.passed for c in report_.components.values()):
         raise typer.Exit(EXIT_GATE)
@@ -326,7 +326,8 @@ def distill(
     from slmforge.data.distill import run_distillation
 
     cfg = DistillConfig.model_validate(load_yaml(config))
-    run_distillation(cfg, client=None, eval_guard=None)  # type: ignore[arg-type]
+    manifest = run_distillation(cfg)
+    typer.echo(f"kept {manifest.n_kept} of {manifest.n_requested} records -> {cfg.output}")
 
 
 # --------------------------------------------------------------------------- entry point
@@ -338,14 +339,26 @@ def main() -> None:
     from pydantic import ValidationError
 
     from slmforge._stub import NotImplementedYet
+    from slmforge.data.contamination import ContaminationError
+    from slmforge.data.distill import DistilledDataRejected, DistillGateError
+    from slmforge.eval.dataset import GroundTruthError
+    from slmforge.protocol import ProtocolDrift
 
+    validation_errors = (
+        ValidationError,
+        GroundTruthError,
+        ProtocolDrift,
+        DistillGateError,
+        DistilledDataRejected,
+        ContaminationError,
+    )
     try:
         app()
     except NotImplementedYet as e:
         typer.echo(f"not implemented yet: {e}", err=True)
         sys.exit(EXIT_NOT_IMPLEMENTED)
-    except ValidationError as e:
-        typer.echo(f"invalid config:\n{e}", err=True)
+    except validation_errors as e:
+        typer.echo(f"{type(e).__name__}: {e}", err=True)
         sys.exit(EXIT_VALIDATION)
     except FileNotFoundError as e:
         typer.echo(f"file not found: {e.filename or e}", err=True)

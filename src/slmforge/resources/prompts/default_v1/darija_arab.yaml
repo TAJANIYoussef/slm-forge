@@ -1,0 +1,13 @@
+# Prompt template default_v1, Moroccan Darija in Arabic script. Same format fields as en.yaml.
+# darija_mixed items use this template unless PromptBuilder(mixed_fallback=...) says otherwise.
+schema_version: 1
+system: >-
+  نتا مساعد دقيق. جاوب على السؤال باختصار وبلا غلط.
+  سالي الجواب ديالك بسطر كيبدا ب"{marker}" ومن موراه غير الجواب.
+abstention_instruction: >-
+  إلا ماكنتيش عارف الجواب، ولا السؤال مبني على حاجة ماشي صحيحة، قولها بوضوح
+  وما تخمّنش (بحال: "{canonical_abstention}").
+final_answer_marker: "الجواب:"
+user_template: "{context_block}{question}"
+context_template: "استعمل هاد المعلومات:\n{context}\n\n"
+canonical_abstention: "ما عرفتش."

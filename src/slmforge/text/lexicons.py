@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from importlib.resources import files
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import Any, Final, Literal, get_args
+from typing import Any, Final, Literal, cast, get_args
 
 import yaml
 
@@ -254,8 +254,8 @@ def _build(version: str, sources: Sequence[tuple[str, bytes]]) -> LexiconSet:
             entries.append(
                 LexiconEntry(
                     id=eid,
-                    kind=kind,
-                    bucket=bucket,
+                    kind=cast(LexKind, kind),
+                    bucket=cast(LexBucket, bucket),
                     category=str(raw.get("category", kind)),
                     strength=strength,
                     hedge_kind=hedge_kind,

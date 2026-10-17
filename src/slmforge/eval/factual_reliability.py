@@ -384,8 +384,8 @@ def compute_bounds(
     lo_n = lo_d = hi_n = hi_d = 0
     for r in rs:
         if r.outcome is Outcome.UNRESOLVED:
-            opts = (spec.contribution(r, r.best_case), spec.contribution(r, r.worst_case))
-            low, high = min(opts, key=_RANK.__getitem__), max(opts, key=_RANK.__getitem__)
+            contribs = (spec.contribution(r, r.best_case), spec.contribution(r, r.worst_case))
+            low, high = min(contribs, key=_RANK.__getitem__), max(contribs, key=_RANK.__getitem__)
         else:
             low = high = spec.contribution(r)
         lo_n, lo_d, hi_n, hi_d = lo_n + low[0], lo_d + low[1], hi_n + high[0], hi_d + high[1]

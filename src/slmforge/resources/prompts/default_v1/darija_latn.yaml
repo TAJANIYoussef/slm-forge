@@ -1,0 +1,12 @@
+# Prompt template default_v1, Moroccan Darija in Latin script (Arabizi). Same format fields as en.yaml.
+schema_version: 1
+system: >-
+  Nta assistant dqiq. Jaweb 3la so2al b ikhtisar w bla ghalat.
+  Sali jawab dyalk b ster kaybda b "{marker}" w mn moraha ghir jawab.
+abstention_instruction: >-
+  Ila ma kontich 3aref jawab, wla so2al mebni 3la 7aja machi s7i7a, golha b wdo7
+  w ma tkhmmench (b7al: "{canonical_abstention}").
+final_answer_marker: "Jawab:"
+user_template: "{context_block}{question}"
+context_template: "Sta3mel had lma3lomat:\n{context}\n\n"
+canonical_abstention: "Ma 3reftch."

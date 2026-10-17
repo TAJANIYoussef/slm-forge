@@ -1,0 +1,15 @@
+# Prompt template default_v1, English.
+# Format fields: {marker} = final_answer_marker, {canonical_abstention}; user_template also takes
+# {question} and {context_block} (the rendered context_template, or "" without context);
+# context_template takes {context}. Any change here changes the protocol hash.
+schema_version: 1
+system: >-
+  You are a careful assistant. Answer the question briefly and accurately.
+  End your reply with one line that starts with "{marker}" followed by the answer only.
+abstention_instruction: >-
+  If you do not know the answer, or the question rests on a false premise, say so plainly
+  instead of guessing (for example: "{canonical_abstention}").
+final_answer_marker: "Final answer:"
+user_template: "{context_block}{question}"
+context_template: "Use the following context:\n{context}\n\n"
+canonical_abstention: "I don't know."

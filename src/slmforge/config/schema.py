@@ -94,6 +94,7 @@ class ContaminationGuard(_Strict):
     policy: Literal["error", "drop", "warn"] = "error"
     ngram_n: int = 8
     ngram_threshold: float = Field(0.5, ge=0, le=1)
+    jaccard_threshold: float = Field(0.5, ge=0, le=1)  # near-duplicate (MinHash) threshold, M8
 
 
 class DataConfig(_Strict):
@@ -254,6 +255,19 @@ class FlagsConfig(_Strict):
     tradeoff_signal: Literal["eval_loss", "chrf_pp"] = "eval_loss"
 
 
+class GatesConfig(_Strict):
+    """Detector/judge validation gates per core bucket (``validate-detectors``, M7)."""
+
+    abstain_precision: float = 0.95
+    abstain_recall: float = 0.90
+    hedge_pr: float = 0.85  # precision and recall
+    matcher_agreement: float = 0.97  # decisive verdicts, non-exact subset
+    residual_precision: float = 0.90  # failing strata switch to the "unresolved" no-cue policy
+    min_kappa: float = 0.75  # judge, overall
+    min_stratum_kappa: float = 0.60  # judge, per bucket
+    max_false_match: float = 0.05  # judge
+
+
 class JudgeConfig(_Strict):
     """Optional local judge, consulted only on rule-UNRESOLVED items after validation (M9)."""
 
@@ -275,6 +289,7 @@ class EvalConfig(_Strict):
     require_reviewed: bool = False
     allowed_domains: list[str] = list(DEFAULT_DOMAINS)
     protocol_lock: Path | None = None
+    allow_unlocked: bool = True  # set false for published test-split results (M7)
     offline: bool = True
     seed: int = 1234
     schedule: ScheduleConfig = ScheduleConfig()
@@ -283,6 +298,7 @@ class EvalConfig(_Strict):
     scoring: ScoringConfig = ScoringConfig()
     stats: StatsConfig = StatsConfig()
     flags: FlagsConfig = FlagsConfig()
+    gates: GatesConfig = GatesConfig()
     judge: JudgeConfig = JudgeConfig()
     verdict_cache: Path = Path("runs/_shared/verdicts.sqlite")
     report_formats: list[Literal["md", "html"]] = ["md", "html"]
@@ -313,8 +329,10 @@ class DistillConfig(_Strict):
     prompt_template: Path
     targets: list[DistillTarget] = []
     max_requests: int = 1000
+    rate_limit_rps: float = Field(2.0, gt=0)
     temperature: float = 0.7
     redact_pii: bool = True
+    require_langid_match: bool = True  # drop teacher outputs not in the target language/script
     exclude_overlap_with: Path | None = None
 
     @model_validator(mode="after")

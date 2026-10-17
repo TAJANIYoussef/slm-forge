@@ -1,0 +1,64 @@
+# End-to-end CPU test run on a tiny random Llama (integration tests, CI full-cpu job).
+#
+#   TINY_MODEL_DIR=/path/to/tiny-llama slm-forge finetune --config configs/tiny-cpu-test.yaml
+#
+# 6 steps with save_steps 2 -> checkpoints 2, 4 and 6, then eval-run on the full fictional sample
+# set (no subsample) and a report. fp32 + eager attention on CPU: outputs are bit-identical
+# across runs, and inline eval equals posthoc exactly only in this setting.
+schema_version: 1
+
+run:
+  name: tiny-cpu-test
+  output_dir: runs
+  seed: 1234
+  strict_determinism: true
+
+model:
+  name_or_path: ${TINY_MODEL_DIR}
+  dtype: fp32
+  max_seq_length: 256
+  attn_implementation: eager
+
+quant:
+  load_in_4bit: false
+
+lora:
+  r: 4
+  alpha: 8
+  target_modules: auto       # the tiny model is a llama
+
+data:
+  train:
+    - {path: data/train/sample_chat.jsonl, format: chat}
+  language_sampling_alpha: 1.0
+  contamination_guard: {policy: error}   # against eval.ground_truth
+
+train:
+  backend: hf_peft
+  max_steps: 6
+  per_device_batch_size: 2
+  grad_accum: 1
+  lr: 1.0e-3
+  scheduler: constant
+  warmup_ratio: 0.0
+  optim: adamw_torch
+  gradient_checkpointing: false
+  save_steps: 2
+  save_total_limit: null
+  logging_steps: 1
+
+eval:
+  ground_truth: data/eval/ground_truth.sample.jsonl
+  split: all
+  offline: true
+  schedule: {mode: posthoc, every_n_steps: 2, include_base: true, include_final: true, after_training: true}
+  subsample: {fraction: null}
+  generation:
+    backend: hf
+    batch_size: 4
+    dtype: fp32
+    quantization: none
+    device: cpu
+    max_new_tokens: {default: 24}
+  stats: {bootstrap_resamples: 200, min_bucket_n: 5}
+  report_formats: [md]

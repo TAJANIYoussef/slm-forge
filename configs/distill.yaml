@@ -1,0 +1,31 @@
+# Teacher-model distillation of TRAINING data (a standalone DistillConfig). Off by default.
+#
+#   slm-forge distill --config configs/distill.yaml
+#
+# Running it requires every opt-in below (see docs/distillation-terms.md):
+#   enabled: true
+#   tos_acknowledged: true + terms_reviewed_on + acknowledged_by: you reviewed the provider's
+#     CURRENT terms (use of outputs; "competing model" clauses also cover the model you train
+#     and publish). slm-forge records the acknowledgment; it makes no legal determination.
+#   allow_send_data: true: prompts leave your machine. Personal data sent out of Morocco falls
+#     under Law 09-08 (CNDP) and may need a declaration or authorization.
+#
+# Output records are tagged provenance.kind=distilled and reviewed=false, are never accepted as
+# eval ground truth or judge labels, and stay subject to the provider's terms (not MIT).
+enabled: false
+provider: anthropic          # anthropic | openai; the API key is read from the environment only
+model: teacher-model-id      # the exact teacher model id; recorded in every record's provenance
+tos_acknowledged: false
+terms_reviewed_on: null      # YYYY-MM-DD
+acknowledged_by: null
+allow_send_data: false
+input: data/distill/seed_prompts.jsonl
+output: data/train/distilled.jsonl
+prompt_template: data/distill/teacher_prompt.md
+targets:
+  - {language: darija, script: arab}
+  - {language: darija, script: latn}
+max_requests: 1000
+temperature: 0.7
+redact_pii: true             # CIN, RIB, IBAN, +212/0 phone numbers, emails
+exclude_overlap_with: data/eval/ground_truth.jsonl   # drop outputs overlapping eval prompts
