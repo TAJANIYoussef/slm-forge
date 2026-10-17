@@ -8,7 +8,13 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from slmforge.config.load import apply_overrides, dump_resolved, expand_env, load_eval_config, load_root_config
+from slmforge.config.load import (
+    apply_overrides,
+    dump_resolved,
+    expand_env,
+    load_eval_config,
+    load_root_config,
+)
 from slmforge.config.schema import DistillConfig, RootConfig
 
 MINIMAL = {
@@ -40,7 +46,7 @@ def test_overrides_parse_yaml_scalars() -> None:
 
 
 def test_bad_override() -> None:
-    with pytest.raises(ValueError, match="dotted.key=value"):
+    with pytest.raises(ValueError, match=r"dotted\.key=value"):
         apply_overrides({}, ["novalue"])
 
 
@@ -64,7 +70,7 @@ def test_steps_xor_epochs() -> None:
 
 def test_eval_schedule_multiple_of_save_steps() -> None:
     bad = {**MINIMAL, "eval": {"ground_truth": "gt.jsonl", "schedule": {"every_n_steps": 3}}}
-    with pytest.raises(ValidationError, match="multiple of train.save_steps"):
+    with pytest.raises(ValidationError, match=r"multiple of train\.save_steps"):
         RootConfig.model_validate(bad)
 
 

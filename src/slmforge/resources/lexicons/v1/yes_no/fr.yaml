@@ -1,0 +1,11 @@
+# yes/no polarity words (fr), L1 form; read from the first token of the answer region.
+version: 1
+kind: yes_no
+bucket: fr
+'yes':
+- oui
+- effectivement
+- exact
+- exactement
+'no':
+- non

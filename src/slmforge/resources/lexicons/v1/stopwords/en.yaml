@@ -1,0 +1,36 @@
+# stopwords (en), L1 form; used to count residual content tokens.
+version: 1
+kind: stopwords
+bucket: en
+words:
+- a
+- an
+- the
+- of
+- to
+- in
+- 'on'
+- for
+- and
+- or
+- is
+- are
+- was
+- were
+- be
+- it
+- this
+- that
+- what
+- which
+- how
+- much
+- many
+- does
+- do
+- did
+- with
+- by
+- at
+- as
+- from

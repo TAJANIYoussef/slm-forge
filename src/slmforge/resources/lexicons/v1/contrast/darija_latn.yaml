@@ -1,0 +1,9 @@
+# contrast cues (darija_latn). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: contrast
+bucket: darija_latn
+entries:
+- id: dar_l.contrast
+  category: contrast
+  strength: strong
+  pattern: \b(?:machi|mashi|blast|f blast|3wed)\b

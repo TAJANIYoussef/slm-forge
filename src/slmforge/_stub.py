@@ -15,7 +15,9 @@ class NotImplementedYet(NotImplementedError):
     def __init__(self, milestone: str, what: str) -> None:
         self.milestone = milestone
         self.what = what
-        super().__init__(f"[{milestone}] {what} is not implemented yet (see ROADMAP.md, milestone {milestone})")
+        super().__init__(
+            f"[{milestone}] {what} is not implemented yet (see ROADMAP.md, milestone {milestone})"
+        )
 
 
 def todo(milestone: str, what: str) -> NoReturn:

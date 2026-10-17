@@ -1,0 +1,10 @@
+# French number words (incl. Belgian/Swiss septante/nonante) for parse_number_words (M4). L1 form.
+version: 1
+units: {zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10,
+        onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16}
+tens: {vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60, septante: 70, huitante: 80,
+       quatre-vingt: 80, quatre-vingts: 80, nonante: 90}
+scales: {cent: 100, cents: 100, mille: 1000, million: 1000000, millions: 1000000, milliard: 1000000000}
+fractions: {demi: "0.5", demie: "0.5", moitie: "0.5", quart: "0.25", tiers: "0.3333"}
+joiners: ["et", "-"]
+# Compositional rules (soixante-dix = 60 + 10, quatre-vingt-dix = 80 + 10) are implemented in code.

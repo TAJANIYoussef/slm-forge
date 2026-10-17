@@ -30,7 +30,8 @@ NORMALIZER_VERSION: Final = "1.0.0"
 
 # L0 deletions: ZWSP..RLM, LRE..RLO, LRI..PDI, ALM, BOM/ZWNBSP, tatweel.
 _L0_DELETE: Final = frozenset(
-    chr(c) for c in (*range(0x200B, 0x2010), *range(0x202A, 0x202F), *range(0x2066, 0x206A), 0x061C, 0xFEFF, 0x0640)
+    chr(c)
+    for c in (*range(0x200B, 0x2010), *range(0x202A, 0x202F), *range(0x2066, 0x206A), 0x061C, 0xFEFF, 0x0640)
 )
 _L0_DELETE_TABLE: Final = dict.fromkeys(map(ord, _L0_DELETE))
 _SPACE_RUN_RE: Final = re.compile(r"[\s    　]+")
@@ -38,14 +39,19 @@ _SPACE_RUN_RE: Final = re.compile(r"[\s    　]+")
 _LINE_BREAKS: Final = frozenset("\n\r\x0b\x0c\x1c\x1d\x1e\x85  ")
 
 # Arabic-Indic (U+0660..0669) and Extended Arabic-Indic / Persian (U+06F0..06F9) digits.
-_DIGIT_TABLE: Final = {**{0x0660 + i: ord("0") + i for i in range(10)}, **{0x06F0 + i: ord("0") + i for i in range(10)}}
+_DIGIT_TABLE: Final = {
+    **{0x0660 + i: ord("0") + i for i in range(10)},
+    **{0x06F0 + i: ord("0") + i for i in range(10)},
+}
 
 # Characters the L1 letter and punctuation maps (steps 5-6) rewrite or delete.
 _L1_MAPPED: Final = frozenset("ٱىةکیۀڭگڤڨءœæ،؛؟٪٫٬«»“”„‘’ʼ`´–—")
 
 # All-caps Latin acronyms (LTV, BAM, MAD), bounded by non-letters; digits do not bound-break.
 _ACRONYM_RE: Final = re.compile(r"(?<![^\W\d_])[A-Z]{2,}(?![^\W\d_])")
-_COUNTED_LETTER_CATEGORIES: Final = frozenset({"Lu", "Ll", "Lt", "Lo"})  # Lm (tatweel, modifier letters) excluded
+_COUNTED_LETTER_CATEGORIES: Final = frozenset(
+    {"Lu", "Ll", "Lt", "Lo"}
+)  # Lm (tatweel, modifier letters) excluded
 SCRIPT_THRESHOLD: Final = 0.7
 
 

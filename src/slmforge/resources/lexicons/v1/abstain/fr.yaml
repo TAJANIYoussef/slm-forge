@@ -1,0 +1,40 @@
+# abstain cues (fr). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: abstain
+bucket: fr
+entries:
+- id: fr.abstain.sais_pas
+  category: not_know
+  strength: strong
+  pattern: \bje (?:ne )?(?:le )?sais pas\b
+  unless_followed_by: \s+(?:si|pourquoi|comment|quand|qui|ce que|ce qu')\b
+  note: '''je ne sais pas si vous savez mais c''est 70 %'' is not an abstention'
+- id: fr.abstain.sais_rien
+  category: not_know
+  strength: strong
+  pattern: \b(?:j'(?:en )?sais (?:pas|rien)|chais pas)\b
+  unless_followed_by: \s+(?:si|pourquoi|comment|quand|qui|ce que|ce qu')\b
+- id: fr.abstain.pas_sur
+  category: not_sure
+  strength: strong
+  pattern: \bje ne suis pas (?:sur|sure|certain|certaine)\b
+- id: fr.abstain.pas_info
+  category: no_information
+  strength: strong
+  pattern: \bje (?:n'ai|ne dispose) pas (?:d'|assez d'|suffisamment d')(?:informations?|elements|donnees)\b
+- id: fr.abstain.ne_peux_pas
+  category: cannot_answer
+  strength: strong
+  pattern: \bje ne (?:peux pas|suis pas en mesure de) (?:repondre|confirmer|verifier|affirmer|dire)\b
+- id: fr.abstain.aucune_info
+  category: no_information
+  strength: strong
+  pattern: \baucune information\b
+- id: fr.abstain.policy
+  category: policy_refusal
+  strength: strong
+  pattern: \bje ne peux pas (?:donner|fournir) de conseils? (?:juridiques?|financiers?)\b
+- id: fr.abstain.consultez
+  category: courtesy
+  strength: weak
+  pattern: \b(?:consultez|contactez|adressez-vous a) (?:un|une|votre) (?:avocat|notaire|banque|banquier|conseiller)\b

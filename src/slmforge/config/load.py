@@ -102,4 +102,7 @@ def dump_resolved(cfg: BaseModel, path: Path) -> None:
 
 
 def _deepcopy(d: dict[str, Any]) -> dict[str, Any]:
-    return {k: _deepcopy(v) if isinstance(v, dict) else (list(v) if isinstance(v, list) else v) for k, v in d.items()}
+    return {
+        k: _deepcopy(v) if isinstance(v, dict) else (list(v) if isinstance(v, list) else v)
+        for k, v in d.items()
+    }

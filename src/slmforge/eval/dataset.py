@@ -35,8 +35,8 @@ from slmforge._stub import todo
 from slmforge.types import (
     NUMERIC_TYPES,
     AnswerType,
-    Language,
     LangScript,
+    Language,
     Script,
     Split,
     UnanswerableReason,
@@ -125,7 +125,7 @@ class GroundTruthItem(_Model):
     @model_validator(mode="before")
     @classmethod
     def _upgrade_legacy(cls, data: Any) -> Any:
-        """Upgrade README-format records ``{prompt, expected_answer, language, domain?, allow_abstention?}``."""
+        """Upgrade README-format records (prompt, expected_answer, language, domain?, allow_abstention?)."""
         if not isinstance(data, dict) or "schema_version" in data or "id" in data:
             return data
         data = dict(data)
@@ -163,7 +163,9 @@ class GroundTruthItem(_Model):
                 raise ValueError("E05: unanswerable items must have allow_abstention=true")
         else:
             if self.unanswerable_reason is not None or self.premise_rejection_cues:
-                raise ValueError("E06: answerable items cannot set unanswerable_reason/premise_rejection_cues")
+                raise ValueError(
+                    "E06: answerable items cannot set unanswerable_reason/premise_rejection_cues"
+                )
             if self.answer_type in NUMERIC_TYPES and self.numeric is None:
                 raise ValueError(f"E08: answer_type={self.answer_type} needs a numeric spec")
             if self.answer_type == "percent" and self.numeric and self.numeric.unit not in (None, "%"):
@@ -324,8 +326,13 @@ def parse_lines(lines: Sequence[str]) -> tuple[list[GroundTruthItem], list[Datas
                 if loc == "id" and code == "E01":
                     code = "E02"
                 issues.append(
-                    DatasetIssue("error", code, f"{loc}: {msg}" if loc else msg, line=n,
-                                 item_id=obj.get("id") if isinstance(obj, dict) else None)
+                    DatasetIssue(
+                        "error",
+                        code,
+                        f"{loc}: {msg}" if loc else msg,
+                        line=n,
+                        item_id=obj.get("id") if isinstance(obj, dict) else None,
+                    )
                 )
             continue
         if "legacy" in item.tags and "schema_version" not in obj:
@@ -334,7 +341,9 @@ def parse_lines(lines: Sequence[str]) -> tuple[list[GroundTruthItem], list[Datas
     return items, issues
 
 
-def validate_set(items: Sequence[GroundTruthItem], *, allowed_domains: Collection[str] | None = None) -> list[DatasetIssue]:
+def validate_set(
+    items: Sequence[GroundTruthItem], *, allowed_domains: Collection[str] | None = None
+) -> list[DatasetIssue]:
     """Cross-item rules: E02 duplicate ids, E12 fact consistency, E13 fact split leakage, domain check."""
     issues: list[DatasetIssue] = []
     seen: set[str] = set()
@@ -343,8 +352,11 @@ def validate_set(items: Sequence[GroundTruthItem], *, allowed_domains: Collectio
             issues.append(DatasetIssue("error", "E02", f"duplicate id {i.id}", item_id=i.id))
         seen.add(i.id)
         if allowed_domains is not None and i.domain not in allowed_domains:
-            issues.append(DatasetIssue("error", "E01", f"domain {i.domain!r} not in {sorted(allowed_domains)}",
-                                       item_id=i.id))
+            issues.append(
+                DatasetIssue(
+                    "error", "E01", f"domain {i.domain!r} not in {sorted(allowed_domains)}", item_id=i.id
+                )
+            )
     by_fact: dict[str, list[GroundTruthItem]] = defaultdict(list)
     for i in items:
         by_fact[i.fact_id or i.id].append(i)

@@ -1,0 +1,13 @@
+# filler cues (darija_arab). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: filler
+bucket: darija_arab
+entries:
+- id: dar_a.filler.sm7li
+  category: apology
+  strength: strong
+  pattern: سمح ?ليا
+- id: dar_a.filler.disclaimer
+  category: disclaimer
+  strength: strong
+  pattern: ماشي نصيحه (?:قانونيه|ماليه)

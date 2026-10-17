@@ -1,0 +1,9 @@
+# contrast cues (darija_arab). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: contrast
+bucket: darija_arab
+entries:
+- id: dar_a.contrast
+  category: contrast
+  strength: strong
+  pattern: (?:ماشي|بلاصت|عوض)

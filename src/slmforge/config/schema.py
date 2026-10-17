@@ -170,7 +170,12 @@ class GenerationConfig(_Strict):
     device: str = "auto"
     base_model_override: str | None = None
     max_new_tokens: dict[str, int] = {
-        "default": 128, "en": 96, "fr": 112, "darija_latn": 160, "darija_arab": 192, "darija_mixed": 192,
+        "default": 128,
+        "en": 96,
+        "fr": 112,
+        "darija_latn": 160,
+        "darija_arab": 192,
+        "darija_mixed": 192,
     }
     stop_strings: list[str] = []
     cache: bool = True
@@ -193,7 +198,9 @@ class ConfidenceConfig(_Strict):
     """Answer-span confidence from a teacher-forced pass; tau is fixed per protocol."""
 
     tau: float = Field(0.5, ge=0, le=1)
-    tau_source: Literal["fixed", "base_dev"] = "fixed"  # base_dev: calibrate on the base model's dev split, then lock
+    tau_source: Literal["fixed", "base_dev"] = (
+        "fixed"  # base_dev: calibrate on the base model's dev split, then lock
+    )
     tau_sweep: list[float] = [0.0, 0.3, 0.5, 0.7, 0.9]
     first_k: int = 32
 
@@ -209,9 +216,17 @@ class ScoringConfig(_Strict):
     confidence: ConfidenceConfig = ConfidenceConfig()
     unresolved_flag_threshold: float = 0.05
     weights: dict[str, float] = {
-        "correct": 1.0, "correct_hedged": 1.0, "abstain_correct": 1.0, "abstain_accepted": 0.0,
-        "non_answer_answerable": -0.25, "non_answer_unanswerable": 0.0, "abstain_unwarranted": -0.5,
-        "wrong_hedged": -0.5, "wrong_low_conf": -0.75, "confabulation": -1.0, "invalid": -0.5,
+        "correct": 1.0,
+        "correct_hedged": 1.0,
+        "abstain_correct": 1.0,
+        "abstain_accepted": 0.0,
+        "non_answer_answerable": -0.25,
+        "non_answer_unanswerable": 0.0,
+        "abstain_unwarranted": -0.5,
+        "wrong_hedged": -0.5,
+        "wrong_low_conf": -0.75,
+        "confabulation": -1.0,
+        "invalid": -0.5,
     }
 
 

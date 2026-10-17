@@ -1,0 +1,11 @@
+# yes/no polarity words (msa), L1 form; read from the first token of the answer region.
+version: 1
+kind: yes_no
+bucket: msa
+'yes':
+- نعم
+- اجل
+- بلي
+'no':
+- لا
+- كلا

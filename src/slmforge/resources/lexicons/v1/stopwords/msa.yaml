@@ -1,0 +1,22 @@
+# stopwords (msa), L1 form; used to count residual content tokens.
+version: 1
+kind: stopwords
+bucket: msa
+words:
+- في
+- من
+- الي
+- علي
+- عن
+- هو
+- هي
+- هذا
+- هذه
+- ما
+- ماذا
+- كم
+- هل
+- التي
+- الذي
+- و
+- او

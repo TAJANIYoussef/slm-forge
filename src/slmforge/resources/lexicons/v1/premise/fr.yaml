@@ -1,0 +1,17 @@
+# premise cues (fr). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: premise
+bucket: fr
+entries:
+- id: fr.premise.existe_pas
+  category: nonexistent
+  strength: strong
+  pattern: \bn'?existe pas\b
+- id: fr.premise.pas_de_tel
+  category: nonexistent
+  strength: strong
+  pattern: \bil n'?y a pas de tel(?:le)?s?\b
+- id: fr.premise.premisse
+  category: false_premise
+  strength: strong
+  pattern: \b(?:la question|la premisse) (?:est|semble|repose sur) (?:inexacte|erronee|une erreur)\b

@@ -1,0 +1,21 @@
+# yes/no polarity words (darija_latn), L1 form; read from the first token of the answer region.
+version: 1
+kind: yes_no
+bucket: darija_latn
+'yes':
+- ah
+- iyeh
+- iyah
+- wah
+- ayeh
+- na3am
+- iwa
+'no':
+- la
+- lla
+- lala
+first_token_only:
+- la
+- ah
+- wah
+note: '''la'' is also the French article: only read as ''no'' at clause start'

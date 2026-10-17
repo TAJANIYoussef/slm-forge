@@ -1,0 +1,31 @@
+# hedge cues (darija_latn). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: hedge
+bucket: darija_latn
+entries:
+- id: dar_l.hedge.kandon
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \bkan(?:dn|dhen|dun|don|dan|9el)\b
+- id: dar_l.hedge.wa9ila
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \bw?a9ila\b
+- id: dar_l.hedge.ymken
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \b(?:ymken|ymkn|imken|momkin|mumkin)\b(?!\s+l)
+  note: '''ymken lik'' (you can) excluded'
+- id: dar_l.hedge.ila_ma_ghlet
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \bila ma ghlett?(?:ch|sh|x)\b
+- id: dar_l.approx
+  category: approximation
+  strength: strong
+  hedge_kind: approximation
+  pattern: \bt?a?9riban\b

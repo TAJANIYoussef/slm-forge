@@ -1,0 +1,12 @@
+# Darija number words in Arabizi for parse_number_words (M4). Digits inside words are letters (3 = ع).
+version: 1
+units: {sfer: 0, wa7ed: 1, wahed: 1, we7da: 1, jouj: 2, jooj: 2, zouj: 2, tlata: 3, rb3a: 4, reb3a: 4, khamsa: 5,
+        stta: 6, setta: 6, sb3a: 7, seb3a: 7, tmnya: 8, tmenya: 8, ts3od: 9, tes3oud: 9, 3achra: 10, 3chra: 10,
+        7dach: 11, tnach: 12, tlettach: 13, rb3tach: 14, khmstach: 15, sttach: 16, sb3tach: 17, tmntach: 18,
+        ts3tach: 19}
+tens: {3chrin: 20, 3echrin: 20, tlatin: 30, rb3in: 40, reb3in: 40, khamsin: 50, sttin: 60, settin: 60,
+       sb3in: 70, seb3in: 70, tmanin: 80, ts3in: 90, tes3in: 90}
+scales: {mya: 100, mia: 100, mitin: 200, alf: 1000, alfayn: 2000, alfin: 2000, melyoun: 1000000, mlyoun: 1000000,
+         melyar: 1000000000, mlyar: 1000000000}
+fractions: {nss: "0.5", nos: "0.5", rbe3: "0.25", rob3: "0.25", tolt: "0.3333"}
+joiners: ["o", "w", "ou"]

@@ -17,7 +17,16 @@ Domain = str  # validated against EvalConfig.allowed_domains; defaults: finance,
 DEFAULT_DOMAINS: Final[tuple[str, ...]] = ("finance", "legal", "general")
 
 AnswerType = Literal[
-    "numeric", "percent", "currency", "duration", "date", "boolean", "choice", "citation", "entity", "free_text"
+    "numeric",
+    "percent",
+    "currency",
+    "duration",
+    "date",
+    "boolean",
+    "choice",
+    "citation",
+    "entity",
+    "free_text",
 ]
 NUMERIC_TYPES: Final[frozenset[str]] = frozenset({"numeric", "percent", "currency", "duration"})
 TYPED_TYPES: Final[frozenset[str]] = NUMERIC_TYPES | {"date", "boolean", "choice", "citation"}

@@ -19,7 +19,9 @@ ARTICLE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"(?:الفصل|الماده|فصل|ماده)\s*(\d+)"),
     re.compile(r"(?:l[- ]?)?(?:fasl|fsl|mada|madda)\s*(\d+)"),
 )
-INSTRUMENT_PATTERN: Final = re.compile(r"(?:loi|law|dahir|قانون|9anon|qanoun)\s*(?:n[°o]\s*)?(\d{1,3})[.\-/](\d{2,4})")
+INSTRUMENT_PATTERN: Final = re.compile(
+    r"(?:loi|law|dahir|قانون|9anon|qanoun)\s*(?:n[°o]\s*)?(\d{1,3})[.\-/](\d{2,4})"
+)
 
 
 @dataclass(frozen=True)

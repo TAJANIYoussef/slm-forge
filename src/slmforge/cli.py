@@ -30,7 +30,9 @@ app = typer.Typer(
     add_completion=False,
 )
 data_app = typer.Typer(help="Validate and inspect ground-truth datasets.", no_args_is_help=True)
-protocol_app = typer.Typer(help="Show or lock the evaluation protocol (pre-registration).", no_args_is_help=True)
+protocol_app = typer.Typer(
+    help="Show or lock the evaluation protocol (pre-registration).", no_args_is_help=True
+)
 review_app = typer.Typer(help="Human review loop for UNRESOLVED items.", no_args_is_help=True)
 app.add_typer(data_app, name="data")
 app.add_typer(protocol_app, name="protocol")
@@ -63,8 +65,12 @@ def _root(
 def finetune(
     config: Annotated[Path, typer.Option("--config", "-c", help="Run config YAML.")],
     set_: SetOpt = None,
-    backend: Annotated[str | None, typer.Option(help="Override train.backend: auto | unsloth | hf_peft.")] = None,
-    dry_run: Annotated[bool, typer.Option(help="Validate config and data, print the plan, do not train.")] = False,
+    backend: Annotated[
+        str | None, typer.Option(help="Override train.backend: auto | unsloth | hf_peft.")
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option(help="Validate config and data, print the plan, do not train.")
+    ] = False,
     resume: Annotated[bool, typer.Option(help="Resume from the latest checkpoint.")] = False,
     overwrite: Annotated[bool, typer.Option(help="Overwrite an existing run directory.")] = False,
     skip_eval: Annotated[bool, typer.Option(help="Do not run eval-run after training.")] = False,
@@ -85,7 +91,7 @@ def finetune(
 # --------------------------------------------------------------------------- evaluation
 
 
-def _eval_config(config: Path | None, set_: list[str] | None, ground_truth: Path | None):  # noqa: ANN202
+def _eval_config(config: Path | None, set_: list[str] | None, ground_truth: Path | None):
     from slmforge.config.load import load_eval_config
 
     if config is None and ground_truth is None:
@@ -95,7 +101,9 @@ def _eval_config(config: Path | None, set_: list[str] | None, ground_truth: Path
 
 @app.command("eval")
 def eval_cmd(
-    checkpoint: Annotated[str, typer.Option(help="Checkpoint dir (adapter or full model) or hub id[@revision].")],
+    checkpoint: Annotated[
+        str, typer.Option(help="Checkpoint dir (adapter or full model) or hub id[@revision].")
+    ],
     suite: SuiteOpt = "factual-reliability",
     ground_truth: Annotated[Path | None, typer.Option(help="Ground-truth JSONL.")] = None,
     config: ConfigOpt = None,
@@ -120,7 +128,9 @@ def eval_run(
     suite: SuiteOpt = "factual-reliability",
     config: ConfigOpt = None,
     set_: SetOpt = None,
-    steps: Annotated[str | None, typer.Option(help="Comma-separated steps to evaluate (default: schedule).")] = None,
+    steps: Annotated[
+        str | None, typer.Option(help="Comma-separated steps to evaluate (default: schedule).")
+    ] = None,
     resume: Annotated[bool, typer.Option(help="Reuse cached generations.")] = True,
 ) -> None:
     """Evaluate every scheduled checkpoint of a run and write the trend report."""
@@ -213,10 +223,10 @@ def data_contamination(
     ground_truth: Annotated[Path, typer.Option(help="Ground-truth JSONL.")],
 ) -> None:
     """Report overlap between training data and eval prompts/facts."""
+    from slmforge.config.schema import DataSpec
     from slmforge.data.contamination import TrainIndex, contamination_report
     from slmforge.data.loader import load_train_records
     from slmforge.eval.dataset import load_ground_truth
-    from slmforge.config.schema import DataSpec
 
     records = load_train_records([DataSpec(path=p) for p in train], seed=0)
     report_ = contamination_report(load_ground_truth(ground_truth), TrainIndex.build(records))
@@ -297,7 +307,8 @@ def diagnose_tokenizer(
     ground_truth: Annotated[Path, typer.Option(help="Ground-truth JSONL used as the text sample.")],
 ) -> None:
     """Tokenizer fertility, byte fallback and Arabizi digit handling per language/script bucket."""
-    from slmforge.diagnostics.tokenizer import diagnose_tokenizer as run, texts_from_ground_truth
+    from slmforge.diagnostics.tokenizer import diagnose_tokenizer as run
+    from slmforge.diagnostics.tokenizer import texts_from_ground_truth
     from slmforge.eval.dataset import load_ground_truth
 
     texts = texts_from_ground_truth(load_ground_truth(ground_truth))
@@ -306,7 +317,9 @@ def diagnose_tokenizer(
 
 
 @app.command()
-def distill(config: Annotated[Path, typer.Option("--config", "-c", help="Distillation config YAML.")]) -> None:
+def distill(
+    config: Annotated[Path, typer.Option("--config", "-c", help="Distillation config YAML.")],
+) -> None:
     """Generate training data with a teacher model (optional; ToS-gated, see docs/distillation-terms.md)."""
     from slmforge.config.load import load_yaml
     from slmforge.config.schema import DistillConfig

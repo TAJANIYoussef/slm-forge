@@ -17,7 +17,6 @@ from slmforge.eval.outcomes import (
     reclassify,
 )
 
-O = Outcome
 ANS = {"answerable": True, "allow_abstention": True, "answer_type": "percent"}
 UNANS = {"answerable": False, "allow_abstention": True, "answer_type": "percent"}
 
@@ -28,64 +27,172 @@ def ev(base: dict[str, object], **kw: object) -> Evidence:
 
 ROWS = [
     # (evidence, expected outcome, note)
-    (ev(ANS, invalid_reason="empty"), O.INVALID, "R0 beats everything"),
-    (ev(ANS, invalid_reason="degenerate", verdict="match", answered_signal=True), O.INVALID, "R0"),
-    (ev(ANS, verdict="match", answered_signal=True, confidence=0.9), O.CORRECT, "R3 match"),
-    (ev(ANS, verdict="match", answered_signal=True, epistemic_hedge=True), O.CORRECT_HEDGED, "hedged match"),
-    (ev(ANS, verdict="mismatch", answered_signal=True, confidence=0.9), O.CONFABULATION, "confident wrong"),
-    (ev(ANS, verdict="mismatch", answered_signal=True, confidence=0.2), O.WRONG_LOW_CONF, "unsure wrong"),
-    (ev(ANS, verdict="mismatch", answered_signal=True, confidence=None), O.CONFABULATION, "no logprobs"),
-    (ev(ANS, verdict="mismatch", answered_signal=True, epistemic_hedge=True, confidence=0.9), O.WRONG_HEDGED, ""),
-    (ev(ANS, verdict="mismatch", answered_signal=True, forces_hedge=True, confidence=0.9), O.WRONG_HEDGED,
-     "several values in final answer"),
-    (ev(ANS, verdict="mismatch", answered_signal=True, abstain_cue=True, abstain_cue_strong=True,
-        confidence=0.9), O.WRONG_HEDGED, "'je ne suis pas sûr, mais 80 %'"),
-    (ev(ANS, verdict="mismatch", answered_signal=True, abstain_cue=True, confidence=0.9), O.CONFABULATION,
-     "weak courtesy cue never hedges"),
-    (ev(ANS, abstain_cue=True), O.ABSTAIN_ACCEPTED, "R2 allow_abstention=true"),
-    (ev({**ANS, "allow_abstention": False}, abstain_cue=True), O.ABSTAIN_UNWARRANTED, "R2 required knowledge"),
-    (ev(ANS, verdict="unresolved", verdict_rule="no_candidate"), O.NON_ANSWER, "typed, no value given"),
-    (ev({**ANS, "answer_type": "entity"}, verdict="unresolved", verdict_rule="no_candidate"), O.UNRESOLVED, ""),
-    (ev(ANS, verdict="unresolved", verdict_rule="skeleton_band", finish_reason="length"), O.INVALID, "R5"),
-    (ev(ANS, verdict="match", answered_signal=True, finish_reason="length"), O.CORRECT, "truncated but decided"),
-    (ev(UNANS, premise_rejection=True, answered_signal=True), O.ABSTAIN_CORRECT, "R1 premise rejection"),
-    (ev(UNANS, abstain_cue=True), O.ABSTAIN_CORRECT, "R2"),
-    (ev(UNANS, answered_signal=True, answered_via="candidate", confidence=0.9), O.CONFABULATION, "R4"),
-    (ev(UNANS, answered_signal=True, answered_via="candidate", epistemic_hedge=True), O.WRONG_HEDGED, "R4"),
-    (ev(UNANS, abstain_cue=True, abstain_cue_strong=True, answered_signal=True, confidence=0.9), O.WRONG_HEDGED,
-     "abstains then guesses anyway"),
-    (ev(UNANS), O.NON_ANSWER, "R4n evasive"),
-    (ev(UNANS, finish_reason="length"), O.INVALID, "R5"),
+    (ev(ANS, invalid_reason="empty"), Outcome.INVALID, "R0 beats everything"),
+    (ev(ANS, invalid_reason="degenerate", verdict="match", answered_signal=True), Outcome.INVALID, "R0"),
+    (ev(ANS, verdict="match", answered_signal=True, confidence=0.9), Outcome.CORRECT, "R3 match"),
+    (
+        ev(ANS, verdict="match", answered_signal=True, epistemic_hedge=True),
+        Outcome.CORRECT_HEDGED,
+        "hedged match",
+    ),
+    (
+        ev(ANS, verdict="mismatch", answered_signal=True, confidence=0.9),
+        Outcome.CONFABULATION,
+        "confident wrong",
+    ),
+    (
+        ev(ANS, verdict="mismatch", answered_signal=True, confidence=0.2),
+        Outcome.WRONG_LOW_CONF,
+        "unsure wrong",
+    ),
+    (
+        ev(ANS, verdict="mismatch", answered_signal=True, confidence=None),
+        Outcome.CONFABULATION,
+        "no logprobs",
+    ),
+    (
+        ev(ANS, verdict="mismatch", answered_signal=True, epistemic_hedge=True, confidence=0.9),
+        Outcome.WRONG_HEDGED,
+        "",
+    ),
+    (
+        ev(ANS, verdict="mismatch", answered_signal=True, forces_hedge=True, confidence=0.9),
+        Outcome.WRONG_HEDGED,
+        "several values in final answer",
+    ),
+    (
+        ev(
+            ANS,
+            verdict="mismatch",
+            answered_signal=True,
+            abstain_cue=True,
+            abstain_cue_strong=True,
+            confidence=0.9,
+        ),
+        Outcome.WRONG_HEDGED,
+        "'je ne suis pas sûr, mais 80 %'",
+    ),
+    (
+        ev(ANS, verdict="mismatch", answered_signal=True, abstain_cue=True, confidence=0.9),
+        Outcome.CONFABULATION,
+        "weak courtesy cue never hedges",
+    ),
+    (ev(ANS, abstain_cue=True), Outcome.ABSTAIN_ACCEPTED, "R2 allow_abstention=true"),
+    (
+        ev({**ANS, "allow_abstention": False}, abstain_cue=True),
+        Outcome.ABSTAIN_UNWARRANTED,
+        "R2 required knowledge",
+    ),
+    (ev(ANS, verdict="unresolved", verdict_rule="no_candidate"), Outcome.NON_ANSWER, "typed, no value given"),
+    (
+        ev({**ANS, "answer_type": "entity"}, verdict="unresolved", verdict_rule="no_candidate"),
+        Outcome.UNRESOLVED,
+        "",
+    ),
+    (
+        ev(ANS, verdict="unresolved", verdict_rule="skeleton_band", finish_reason="length"),
+        Outcome.INVALID,
+        "R5",
+    ),
+    (
+        ev(ANS, verdict="match", answered_signal=True, finish_reason="length"),
+        Outcome.CORRECT,
+        "truncated but decided",
+    ),
+    (
+        ev(UNANS, premise_rejection=True, answered_signal=True),
+        Outcome.ABSTAIN_CORRECT,
+        "R1 premise rejection",
+    ),
+    (ev(UNANS, abstain_cue=True), Outcome.ABSTAIN_CORRECT, "R2"),
+    (ev(UNANS, answered_signal=True, answered_via="candidate", confidence=0.9), Outcome.CONFABULATION, "R4"),
+    (
+        ev(UNANS, answered_signal=True, answered_via="candidate", epistemic_hedge=True),
+        Outcome.WRONG_HEDGED,
+        "R4",
+    ),
+    (
+        ev(UNANS, abstain_cue=True, abstain_cue_strong=True, answered_signal=True, confidence=0.9),
+        Outcome.WRONG_HEDGED,
+        "abstains then guesses anyway",
+    ),
+    (ev(UNANS), Outcome.NON_ANSWER, "R4n evasive"),
+    (ev(UNANS, finish_reason="length"), Outcome.INVALID, "R5"),
 ]
 
 
-@pytest.mark.parametrize(("evidence", "expected", "note"), ROWS, ids=[f"{i}:{r[2]}" for i, r in enumerate(ROWS)])
+@pytest.mark.parametrize(
+    ("evidence", "expected", "note"), ROWS, ids=[f"{i}:{r[2]}" for i, r in enumerate(ROWS)]
+)
 def test_decision_rows(evidence: Evidence, expected: Outcome, note: str) -> None:
     assert decide(evidence, tau=0.5).outcome is expected
 
 
 def test_residual_policy_unresolved() -> None:
     e = ev(UNANS, answered_signal=True, answered_via="residual", confidence=0.9)
-    assert decide(e, tau=0.5, policy="residual").outcome is O.CONFABULATION
+    assert decide(e, tau=0.5, policy="residual").outcome is Outcome.CONFABULATION
     d = decide(e, tau=0.5, policy="unresolved")
-    assert (d.outcome, d.best_case, d.worst_case) == (O.UNRESOLVED, O.ABSTAIN_CORRECT, O.CONFABULATION)
+    assert (d.outcome, d.best_case, d.worst_case) == (
+        Outcome.UNRESOLVED,
+        Outcome.ABSTAIN_CORRECT,
+        Outcome.CONFABULATION,
+    )
 
 
 def _grid() -> list[Evidence]:
     out = []
-    for answerable, allow, atype, invalid, finish, cue, strong, prem, hedge, answered, verdict, forces, conf in (
-        itertools.product(
-            [True, False], [True, False], ["percent", "entity"], [None, "empty"], ["eos", "length"],
-            [False, True], [False, True], [False, True], [False, True], [False, True],
-            [None, "match", "mismatch", "unresolved"], [False, True], [None, 0.2, 0.8],
-        )
+    for (
+        answerable,
+        allow,
+        atype,
+        invalid,
+        finish,
+        cue,
+        strong,
+        prem,
+        hedge,
+        answered,
+        verdict,
+        forces,
+        conf,
+    ) in itertools.product(
+        [True, False],
+        [True, False],
+        ["percent", "entity"],
+        [None, "empty"],
+        ["eos", "length"],
+        [False, True],
+        [False, True],
+        [False, True],
+        [False, True],
+        [False, True],
+        [None, "match", "mismatch", "unresolved"],
+        [False, True],
+        [None, 0.2, 0.8],
     ):
         if not answerable and (not allow or verdict is not None or forces):
             continue  # invalid combinations: the schema / matcher never produce them
         if strong and not cue:
             continue
-        out.append(Evidence(answerable, allow, atype, finish, invalid, cue, strong, prem, hedge, answered,
-                            "candidate" if answered else None, verdict, "no_candidate", forces, conf))
+        out.append(
+            Evidence(
+                answerable,
+                allow,
+                atype,
+                finish,
+                invalid,
+                cue,
+                strong,
+                prem,
+                hedge,
+                answered,
+                "candidate" if answered else None,
+                verdict,
+                "no_candidate",
+                forces,
+                conf,
+            )
+        )
     return out
 
 
@@ -96,28 +203,39 @@ def test_total_and_bounds_consistent() -> None:
     for e in GRID:
         d = decide(e, tau=0.5)
         assert isinstance(d.outcome, Outcome)
-        if d.outcome is not O.UNRESOLVED:
+        if d.outcome is not Outcome.UNRESOLVED:
             assert d.best_case is d.outcome and d.worst_case is d.outcome
         if not e.answerable:
-            assert d.outcome not in (O.CORRECT, O.CORRECT_HEDGED, O.ABSTAIN_ACCEPTED, O.ABSTAIN_UNWARRANTED)
+            assert d.outcome not in (
+                Outcome.CORRECT,
+                Outcome.CORRECT_HEDGED,
+                Outcome.ABSTAIN_ACCEPTED,
+                Outcome.ABSTAIN_UNWARRANTED,
+            )
         if d.outcome in ABSTAINED:
             assert not e.answered_signal or e.premise_rejection
 
 
 def test_hedging_never_creates_confabulation() -> None:
     for e in GRID:
-        if decide(e, tau=0.5).outcome is not O.CONFABULATION:
-            assert decide(dataclasses.replace(e, epistemic_hedge=True), tau=0.5).outcome is not O.CONFABULATION
+        if decide(e, tau=0.5).outcome is not Outcome.CONFABULATION:
+            assert (
+                decide(dataclasses.replace(e, epistemic_hedge=True), tau=0.5).outcome
+                is not Outcome.CONFABULATION
+            )
 
 
 def test_confabulation_monotone_in_confidence_and_tau() -> None:
     for e in GRID:
         if e.confidence is None:
             continue
-        lo = decide(dataclasses.replace(e, confidence=0.2), tau=0.5).outcome is O.CONFABULATION
-        hi = decide(dataclasses.replace(e, confidence=0.8), tau=0.5).outcome is O.CONFABULATION
+        lo = decide(dataclasses.replace(e, confidence=0.2), tau=0.5).outcome is Outcome.CONFABULATION
+        hi = decide(dataclasses.replace(e, confidence=0.8), tau=0.5).outcome is Outcome.CONFABULATION
         assert hi or not lo
-        assert decide(e, tau=0.0).outcome is O.CONFABULATION or decide(e, tau=0.9).outcome is not O.CONFABULATION
+        assert (
+            decide(e, tau=0.0).outcome is Outcome.CONFABULATION
+            or decide(e, tau=0.9).outcome is not Outcome.CONFABULATION
+        )
 
 
 def test_answered_outcomes_require_commitment() -> None:
@@ -128,14 +246,29 @@ def test_answered_outcomes_require_commitment() -> None:
 
 def _result(e: Evidence) -> ItemResult:
     d = decide(e, tau=0.5)
-    return ItemResult("i1", "f1", "fr", "finance", e.answer_type, e.answerable, e.allow_abstention, None, False,
-                      e, d.outcome, d.best_case, d.worst_case, d.hedged, d.rule)
+    return ItemResult(
+        "i1",
+        "f1",
+        "fr",
+        "finance",
+        e.answer_type,
+        e.answerable,
+        e.allow_abstention,
+        None,
+        False,
+        e,
+        d.outcome,
+        d.best_case,
+        d.worst_case,
+        d.hedged,
+        d.rule,
+    )
 
 
 def test_reclassify_matches_decide_and_roundtrips() -> None:
     e = ev(ANS, verdict="mismatch", answered_signal=True, confidence=0.6)
     r = _result(e)
-    assert r.outcome is O.CONFABULATION
-    assert reclassify(r, tau=0.7).outcome is O.WRONG_LOW_CONF
-    assert reclassify(r, tau=0.5, verdict="match", verdict_source="human").outcome is O.CORRECT
+    assert r.outcome is Outcome.CONFABULATION
+    assert reclassify(r, tau=0.7).outcome is Outcome.WRONG_LOW_CONF
+    assert reclassify(r, tau=0.5, verdict="match", verdict_source="human").outcome is Outcome.CORRECT
     assert ItemResult.from_json(r.to_json()) == r

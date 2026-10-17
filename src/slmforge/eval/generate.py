@@ -42,8 +42,13 @@ class DecodingParams:
 
     def sha256(self) -> str:
         """Hash for the protocol and the cache key."""
-        d = {"max_new_tokens": dict(sorted(self.max_new_tokens.items())), "stop": list(self.stop_strings),
-             "seed": self.seed, "greedy": True, "repetition_penalty": 1.0}
+        d = {
+            "max_new_tokens": dict(sorted(self.max_new_tokens.items())),
+            "stop": list(self.stop_strings),
+            "seed": self.seed,
+            "greedy": True,
+            "repetition_penalty": 1.0,
+        }
         return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest()
 
 
@@ -189,8 +194,9 @@ def write_generations(path: Path, records: Sequence[GenerationRecord]) -> None:
             f.write(json.dumps(r.to_json(), ensure_ascii=False) + "\n")
 
 
-def cache_key(*, checkpoint_fp: str, generator_fp: str, decoding_sha256: str, prompt_sha256: str,
-              content_hash: str) -> str:
+def cache_key(
+    *, checkpoint_fp: str, generator_fp: str, decoding_sha256: str, prompt_sha256: str, content_hash: str
+) -> str:
     """Key for one cached generation. Never a path: ``checkpoint-500`` is reused across runs."""
     raw = "\0".join((checkpoint_fp, generator_fp, decoding_sha256, prompt_sha256, content_hash))
     return hashlib.sha256(raw.encode()).hexdigest()

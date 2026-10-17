@@ -1,0 +1,35 @@
+# hedge cues (en). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: hedge
+bucket: en
+entries:
+- id: en.hedge.i_think
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \bi (?:think|believe|guess|suppose)\b
+- id: en.hedge.probably
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \b(?:probably|possibly|perhaps|maybe)\b
+- id: en.hedge.recall
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: '\b(?:if i (?:recall|remember)(?: correctly)?|as far as i know|to the best of my knowledge)\b'
+- id: en.hedge.it_seems
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \bit (?:seems|appears)\b
+- id: en.hedge.not_fully_sure
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: \bnot (?:100%|entirely|completely|fully) (?:sure|certain)\b
+- id: en.approx
+  category: approximation
+  strength: strong
+  hedge_kind: approximation
+  pattern: \b(?:approximately|roughly|approx\.?|around)\b

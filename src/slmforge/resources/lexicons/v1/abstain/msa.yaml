@@ -1,0 +1,21 @@
+# abstain cues (msa). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: abstain
+bucket: msa
+entries:
+- id: msa.abstain.la_aarif
+  category: not_know
+  strength: strong
+  pattern: لا (?:اعرف|اعلم|ادري)
+- id: msa.abstain.lastu
+  category: not_sure
+  strength: strong
+  pattern: لست (?:متاكدا?|متاكده)
+- id: msa.abstain.no_info
+  category: no_information
+  strength: strong
+  pattern: (?:ليس لدي|لا (?:امتلك|املك)) (?:اي )?معلومات
+- id: msa.abstain.cannot
+  category: cannot_answer
+  strength: strong
+  pattern: لا يمكنني (?:الاجابه|التاكد|الجزم|تقديم)

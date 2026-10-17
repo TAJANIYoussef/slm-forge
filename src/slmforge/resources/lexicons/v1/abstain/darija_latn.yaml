@@ -1,0 +1,30 @@
+# abstain cues (darija_latn). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: abstain
+bucket: darija_latn
+entries:
+- id: dar_l.abstain.ma_3reftch
+  category: not_know
+  strength: strong
+  pattern: \bma ?(?:kan|kn)?3a?re?ft?(?:ch|sh|x)\b
+  unless_followed_by: \s+(?:3lach|3lash|wach|wash|kifach|fin|chkoun)\b
+- id: dar_l.abstain.machi_mt2aked
+  category: not_sure
+  strength: strong
+  pattern: \b(?:machi|mashi|ma) ?m(?:t2|ta|t)ak(?:e|ae)?d(?:ch|sh|x)?\b
+- id: dar_l.abstain.ma3ndich
+  category: no_information
+  strength: strong
+  pattern: \bma ?3ndi(?:ch|sh|x) (?:fikra|ma3loumat|lma3loumat|ma3lomat)\b
+- id: dar_l.abstain.ma_n9drch
+  category: cannot_answer
+  strength: strong
+  pattern: \bma ?n9e?d(?:e)?r(?:ch|sh|x)\b
+- id: dar_l.abstain.allah_a3lam
+  category: courtesy
+  strength: weak
+  pattern: \ballah (?:a3lam|ya3lam)\b
+- id: dar_l.abstain.sowel
+  category: courtesy
+  strength: weak
+  pattern: \bs(?:o|ou)wel (?:l ?bank|l ?avocat|lmo7ami|chi mo7ami)\b

@@ -1,0 +1,25 @@
+# stopwords (darija_latn), L1 form; used to count residual content tokens.
+version: 1
+kind: stopwords
+bucket: darija_latn
+words:
+- f
+- fl
+- dyal
+- dial
+- d
+- ch7al
+- chhal
+- chno
+- chnou
+- wach
+- howa
+- hiya
+- had
+- hadi
+- li
+- lli
+- o
+- wla
+- 3la
+- m3a

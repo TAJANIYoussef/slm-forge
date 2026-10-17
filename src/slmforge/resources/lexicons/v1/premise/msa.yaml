@@ -1,0 +1,13 @@
+# premise cues (msa). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: premise
+bucket: msa
+entries:
+- id: msa.premise.ghayr_mawjud
+  category: nonexistent
+  strength: strong
+  pattern: غير موجود
+- id: msa.premise.la_yujad
+  category: nonexistent
+  strength: strong
+  pattern: (?:لا يوجد|ليس هناك) (?:مثل|هذا|هذه)

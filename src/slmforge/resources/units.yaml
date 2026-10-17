@@ -1,0 +1,57 @@
+# Units, scale words and colloquial conversions for text/numbers.py (loaded by UnitTable).
+# Every surface form is written in L1 form: casefolded, no accents or harakat, ة written ه,
+# hamza seats folded (أ -> ا), ASCII digits. UnitTable.load rejects anything else.
+# Bump `version` (and NORMALIZER/MATCHER versions if semantics change) when editing.
+version: 1
+
+units:
+  "%":
+    kind: percent
+    surfaces: ["%", "pourcent", "pour cent", "percent", "per cent", "f lmya", "f lmia", "fl mya", "fl mia",
+               "فالميه", "في الميه", "في المايه", "بالمايه", "بالميه"]
+  MAD:
+    kind: money
+    surfaces: ["dh", "dhs", "mad", "dirham", "dirhams", "درهم", "دراهم", "درهام"]
+  EUR:
+    kind: money
+    surfaces: ["€", "eur", "euro", "euros", "اورو"]
+  USD:
+    kind: money
+    surfaces: ["$", "usd", "dollar", "dollars", "دولار"]
+  days:
+    kind: duration
+    surfaces: ["jour", "jours", "day", "days", "يوم", "ايام", "nhar", "iyam"]
+  months:
+    kind: duration
+    surfaces: ["mois", "month", "months", "شهر", "شهور", "chhar", "chhour"]
+  years:
+    kind: duration
+    surfaces: ["an", "ans", "annee", "annees", "year", "years", "سنه", "سنوات", "عام", "3am", "3amin"]
+
+# Words that scale the preceding number. A surface may have different factors per lang hint.
+scales:
+  - {surfaces: ["k"], factor: 1000}
+  - {surfaces: ["mille", "alf", "alaf", "الف", "الاف"], factor: 1000}
+  - {surfaces: ["million", "millions", "melyoun", "mlyoun", "malayin", "مليون", "ملايين"], factor: 1000000}
+  - {surfaces: ["milliard", "milliards", "melyar", "mlyar", "md", "mrd", "mds", "bn", "مليار", "ملايير"],
+     factor: 1000000000}
+  - {surfaces: ["billion", "billions"], factor: 1000000000, langs: [en, darija]}
+  - {surfaces: ["billion", "billions"], factor: 1000000000000, langs: [fr], flag: fr_billion}
+  - {surfaces: ["trillion", "trillions"], factor: 1000000000000, langs: [en]}
+
+# Scale words that also fix the unit: "12 MMDH" = 1.2e10 MAD.
+compounds:
+  - {surfaces: ["mdh", "mdhs"], factor: 1000000, unit: MAD}
+  - {surfaces: ["mmdh"], factor: 1000000000, unit: MAD}
+
+# Colloquial Moroccan money units, converted to MAD (flagged).
+colloquial:
+  - {surfaces: ["ryal", "rial", "riyal", "ريال"], factor: "0.05", unit: MAD, flag: colloquial_unit_conversion}
+  - {surfaces: ["centime", "centimes", "frank", "fr9", "سنتيم", "فرنك"], factor: "0.01", unit: MAD,
+     flag: colloquial_unit_conversion}
+
+# "2 melyoun" without a currency (or in centimes/ryal) is colloquially 20,000 DH: add a x1e4 MAD reading.
+darija_money_scale: {surfaces: ["melyoun", "mlyoun", "مليون"], factor: 10000, unit: MAD, flag: darija_money_scale}
+
+conversions:
+  - {from: years, to: months, factor: 12}

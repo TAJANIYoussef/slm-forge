@@ -1,0 +1,37 @@
+# abstain cues (en). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: abstain
+bucket: en
+entries:
+- id: en.abstain.dont_know
+  category: not_know
+  strength: strong
+  pattern: \bi (?:do not|don't|dont) know\b
+  unless_followed_by: \s+(?:why|whether|if|how|what|who|when)\b
+  note: '''I don''t know why people say 60%; it''s 70%'' is not an abstention'
+- id: en.abstain.not_sure
+  category: not_sure
+  strength: strong
+  pattern: \bi(?:'m| am) not (?:sure|certain)\b
+- id: en.abstain.cannot_answer
+  category: cannot_answer
+  strength: strong
+  pattern: \bi (?:cannot|can't|am unable to) (?:answer|confirm|verify|determine|say|provide)\b
+- id: en.abstain.no_info
+  category: no_information
+  strength: strong
+  pattern: \bi (?:do not|don't) have (?:enough |sufficient |any |reliable )?(?:information|data|details)\b
+- id: en.abstain.beyond_knowledge
+  category: no_information
+  strength: strong
+  pattern: \b(?:beyond my knowledge|no reliable information)\b
+- id: en.abstain.policy
+  category: policy_refusal
+  strength: strong
+  pattern: \bi (?:cannot|can't) (?:give|provide|offer) (?:financial|legal|investment) advice\b
+  note: reported separately (refusal_kind=policy); fine-tuning often removes these
+- id: en.abstain.consult
+  category: courtesy
+  strength: weak
+  pattern: \b(?:consult|contact|ask) (?:a|an|your) (?:lawyer|notary|bank|banker|advisor|adviser|accountant)\b
+  note: 'weak: counts only when no answer is given; never a hedge'

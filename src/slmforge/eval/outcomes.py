@@ -203,7 +203,11 @@ class ItemResult:
 
 
 def detect_invalid(
-    rec: GenerationRecord, response: str, *, min_tokens: int = 64, min_distinct_4gram: float = 0.25,
+    rec: GenerationRecord,
+    response: str,
+    *,
+    min_tokens: int = 64,
+    min_distinct_4gram: float = 0.25,
     max_token_repeat: int = 8,
 ) -> InvalidReason | None:
     """Empty, degenerate (low distinct-4-gram ratio or long token repeats) or errored generations."""
@@ -237,6 +241,12 @@ def reclassify(
     ev = r.evidence if verdict is None else dataclasses.replace(r.evidence, verdict=verdict)
     d = decide(ev, tau=tau, policy=policy)
     return dataclasses.replace(
-        r, evidence=ev, outcome=d.outcome, best_case=d.best_case, worst_case=d.worst_case,
-        hedged=d.hedged, decision_rule=d.rule, verdict_source=verdict_source or r.verdict_source,
+        r,
+        evidence=ev,
+        outcome=d.outcome,
+        best_case=d.best_case,
+        worst_case=d.worst_case,
+        hedged=d.hedged,
+        decision_rule=d.rule,
+        verdict_source=verdict_source or r.verdict_source,
     )

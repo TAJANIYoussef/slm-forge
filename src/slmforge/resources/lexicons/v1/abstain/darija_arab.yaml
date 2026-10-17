@@ -1,0 +1,41 @@
+# abstain cues (darija_arab). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: abstain
+bucket: darija_arab
+entries:
+- id: dar.abstain.ma_3reftch
+  category: not_know
+  strength: strong
+  skeleton: \bm ?(?:kn ?)?Erft?C\b
+  unless_followed_by: \s*(?:ElC|wC|kfC)\b
+  note: skeleton covers ما عرفتش, ماكنعرفش, ma3reftch, makan3refch
+- id: dar_a.abstain.ma_3reftch
+  category: not_know
+  strength: strong
+  pattern: ما ?(?:كن|كا)?(?:عرفت?|عارف)ش
+  unless_followed_by: \s*(?:علاش|واش|كيفاش|فين|شكون)
+- id: dar_a.abstain.mt2akdch
+  category: not_sure
+  strength: strong
+  pattern: (?:ما|ماشي) ?متاكد(?:ش)?
+- id: dar_a.abstain.ma3ndich
+  category: no_information
+  strength: strong
+  pattern: ما ?عنديش (?:فكره|المعلومات|معلومات)
+- id: dar_a.abstain.ma_n9drch
+  category: cannot_answer
+  strength: strong
+  pattern: ما ?نقدرش (?:نجاوب|نقول|ناكد)
+- id: dar_a.abstain.ma_frasich
+  category: not_know
+  strength: strong
+  pattern: ما ?فراسيش
+- id: dar_a.abstain.allah_a3lam
+  category: courtesy
+  strength: weak
+  pattern: الله اعلم
+  note: 'pious closing formula: never a hedge'
+- id: dar_a.abstain.sowel
+  category: courtesy
+  strength: weak
+  pattern: سول (?:البنك|المحامي|الموثق|شي محامي)

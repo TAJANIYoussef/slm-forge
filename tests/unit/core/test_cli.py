@@ -13,8 +13,20 @@ from slmforge import __version__
 from slmforge.cli import EXIT_NOT_IMPLEMENTED, EXIT_VALIDATION, app
 
 runner = CliRunner()
-COMMANDS = ("finetune", "eval", "eval-run", "score", "rescore", "report", "data", "protocol", "review",
-            "validate-detectors", "diagnose-tokenizer", "distill")
+COMMANDS = (
+    "finetune",
+    "eval",
+    "eval-run",
+    "score",
+    "rescore",
+    "report",
+    "data",
+    "protocol",
+    "review",
+    "validate-detectors",
+    "diagnose-tokenizer",
+    "distill",
+)
 
 
 def test_help_lists_every_command() -> None:
@@ -45,8 +57,18 @@ def test_stub_exits_with_not_implemented(tmp_path: Path, repo_root: Path) -> Non
     responses = tmp_path / "responses.jsonl"
     responses.write_text(json.dumps({"item_id": "x", "response": "y"}) + "\n", encoding="utf-8")
     gt = repo_root / "data/eval/ground_truth.sample.jsonl"
-    cmd = [sys.executable, "-m", "slmforge.cli", "score", "--responses", str(responses),
-           "--ground-truth", str(gt), "--out", str(tmp_path / "out")]
+    cmd = [
+        sys.executable,
+        "-m",
+        "slmforge.cli",
+        "score",
+        "--responses",
+        str(responses),
+        "--ground-truth",
+        str(gt),
+        "--out",
+        str(tmp_path / "out"),
+    ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     assert res.returncode == EXIT_NOT_IMPLEMENTED, res.stderr
     assert "[M" in res.stderr

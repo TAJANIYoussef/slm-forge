@@ -1,0 +1,13 @@
+# filler cues (fr). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: filler
+bucket: fr
+entries:
+- id: fr.filler.desole
+  category: apology
+  strength: strong
+  pattern: \b(?:desole|desolee|pardon)\b
+- id: fr.filler.disclaimer
+  category: disclaimer
+  strength: strong
+  pattern: \b(?:ce n'est pas un conseil (?:juridique|financier)|je ne suis pas (?:avocat|juriste|conseiller))\b

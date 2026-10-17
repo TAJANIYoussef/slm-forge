@@ -1,0 +1,21 @@
+# stopwords (darija_arab), L1 form; used to count residual content tokens.
+version: 1
+kind: stopwords
+bucket: darija_arab
+words:
+- ف
+- ديال
+- د
+- شحال
+- شنو
+- واش
+- هو
+- هي
+- هاد
+- هادي
+- لي
+- اللي
+- و
+- ولا
+- علي
+- مع

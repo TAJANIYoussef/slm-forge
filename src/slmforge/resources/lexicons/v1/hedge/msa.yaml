@@ -1,0 +1,20 @@
+# hedge cues (msa). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: hedge
+bucket: msa
+entries:
+- id: msa.hedge.aataqid
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: (?:اعتقد|اظن)
+- id: msa.hedge.rubbama
+  category: epistemic
+  strength: strong
+  hedge_kind: epistemic
+  pattern: (?:ربما|علي الارجح|من المحتمل)
+- id: msa.approx
+  category: approximation
+  strength: strong
+  hedge_kind: approximation
+  pattern: (?:تقريبا|حوالي)

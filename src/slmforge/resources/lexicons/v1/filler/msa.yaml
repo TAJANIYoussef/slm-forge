@@ -1,0 +1,13 @@
+# filler cues (msa). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: filler
+bucket: msa
+entries:
+- id: msa.filler.aasif
+  category: apology
+  strength: strong
+  pattern: (?:عذرا|اسف|اعتذر)
+- id: msa.filler.disclaimer
+  category: disclaimer
+  strength: strong
+  pattern: (?:هذه|هذا) ليست? (?:استشاره|نصيحه) (?:قانونيه|ماليه)

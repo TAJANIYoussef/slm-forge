@@ -1,0 +1,14 @@
+# premise cues (darija_latn). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: premise
+bucket: darija_latn
+entries:
+- id: dar_l.premise.makaynch
+  category: nonexistent
+  strength: strong
+  pattern: \bma ?kayn(?:ch|sh|x)\b
+  unless_followed_by: \s*(?:mochkil|mouchkil|mochkila|bas|probleme|problem)\b
+- id: dar_l.premise.machi_s7i7
+  category: false_premise
+  strength: strong
+  pattern: \b(?:machi|mashi) s7i7\b

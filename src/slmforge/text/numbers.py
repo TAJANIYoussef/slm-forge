@@ -164,8 +164,13 @@ def _multiplier(obj: Any, label: str, where: str, units: Mapping[str, UnitDef]) 
     flag = m.get("flag")
     if flag is not None and not (isinstance(flag, str) and flag):
         raise _fail(label, f"{where}.flag must be a non-empty string")
-    return Multiplier(_surfaces(m["surfaces"], label, where), _decimal(m["factor"], label, f"{where}.factor"),
-                      unit, langs, flag)
+    return Multiplier(
+        _surfaces(m["surfaces"], label, where),
+        _decimal(m["factor"], label, f"{where}.factor"),
+        unit,
+        langs,
+        flag,
+    )
 
 
 def _parse_units(data: bytes, label: str) -> UnitTable:
@@ -173,9 +178,13 @@ def _parse_units(data: bytes, label: str) -> UnitTable:
         raw = yaml.safe_load(data.decode("utf-8"))
     except (UnicodeDecodeError, yaml.YAMLError) as e:
         raise _fail(label, f"cannot parse YAML: {e}") from None
-    top = _mapping(raw, label, "top level",
-                   {"version", "units", "scales", "compounds", "colloquial", "darija_money_scale", "conversions"},
-                   {"version", "units"})
+    top = _mapping(
+        raw,
+        label,
+        "top level",
+        {"version", "units", "scales", "compounds", "colloquial", "darija_money_scale", "conversions"},
+        {"version", "units"},
+    )
     version = top["version"]
     if isinstance(version, bool) or not isinstance(version, int):
         raise _fail(label, f"version must be an integer, got {version!r}")
@@ -235,8 +244,14 @@ def _parse_units(data: bytes, label: str) -> UnitTable:
         conversions[(src, dst)] = _decimal(c["factor"], label, f"{where}.factor")
 
     return UnitTable(
-        version=version, units=units, scales=scales, compounds=compounds, colloquial=colloquial,
-        darija_money_scale=darija_money_scale, conversions=conversions, by_surface=by_surface,
+        version=version,
+        units=units,
+        scales=scales,
+        compounds=compounds,
+        colloquial=colloquial,
+        darija_money_scale=darija_money_scale,
+        conversions=conversions,
+        by_surface=by_surface,
         sha256=hashlib.sha256(data).hexdigest(),
     )
 

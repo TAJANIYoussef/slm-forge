@@ -1,0 +1,9 @@
+# contrast cues (fr). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: contrast
+bucket: fr
+entries:
+- id: fr.contrast
+  category: contrast
+  strength: strong
+  pattern: \b(?:pas|non|jamais|au lieu de|plutot que)\b

@@ -1,0 +1,13 @@
+# yes/no polarity words (darija_arab), L1 form; read from the first token of the answer region.
+version: 1
+kind: yes_no
+bucket: darija_arab
+'yes':
+- اه
+- ايه
+- واه
+- ايوا
+- نعم
+'no':
+- لا
+- لالا

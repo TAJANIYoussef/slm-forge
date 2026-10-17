@@ -1,0 +1,16 @@
+# Month names for text/dates.py (loader lands in M4). Surfaces in L1 form.
+# Moroccan usage follows the French calendar names (يناير ... دجنبر); MSA names are also accepted.
+version: 1
+months:
+  1:  ["janvier", "janv", "january", "jan", "يناير", "جانفي", "كانون الثاني", "yanayr", "yennayer"]
+  2:  ["fevrier", "fevr", "february", "feb", "فبراير", "فيفري", "شباط", "fbrayr"]
+  3:  ["mars", "march", "mar", "مارس", "اذار"]
+  4:  ["avril", "april", "apr", "ابريل", "افريل", "نيسان", "abril"]
+  5:  ["mai", "may", "ماي", "مايو", "ايار"]
+  6:  ["juin", "june", "jun", "يونيو", "جوان", "حزيران", "yonyo", "younyou"]
+  7:  ["juillet", "july", "jul", "يوليوز", "يوليو", "جويليه", "تموز", "yolyoz", "youlyouz"]
+  8:  ["aout", "august", "aug", "غشت", "اغسطس", "اوت", "اب", "ghocht", "ghusht"]
+  9:  ["septembre", "sept", "september", "sep", "شتنبر", "سبتمبر", "ايلول", "chtanbr", "shutanbir"]
+  10: ["octobre", "oct", "october", "اكتوبر", "تشرين الاول", "oktobr", "ouktoubr"]
+  11: ["novembre", "nov", "november", "نونبر", "نوفمبر", "تشرين الثاني", "nonbr", "nounbir"]
+  12: ["decembre", "dec", "december", "دجنبر", "ديسمبر", "كانون الاول", "dujanbr", "dojanbir"]

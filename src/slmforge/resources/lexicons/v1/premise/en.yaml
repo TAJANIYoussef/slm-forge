@@ -1,0 +1,17 @@
+# premise cues (en). Patterns are regexes on L1 text; 'skeleton' patterns run on the L2 skeleton.
+version: 1
+kind: premise
+bucket: en
+entries:
+- id: en.premise.not_exist
+  category: nonexistent
+  strength: strong
+  pattern: \b(?:does not|doesn't|did not|didn't) exist\b
+- id: en.premise.no_such
+  category: nonexistent
+  strength: strong
+  pattern: \b(?:there is no (?:such|known)|no such (?:article|law|scheme|provision|program|programme|product))\b
+- id: en.premise.false_premise
+  category: false_premise
+  strength: strong
+  pattern: \b(?:the|your) (?:question|premise) (?:is|seems|appears) (?:incorrect|mistaken|wrong)\b

@@ -87,7 +87,12 @@ def test_unknown_keys_are_rejected() -> None:
 
 
 def test_legacy_readme_record_upgrades() -> None:
-    legacy = {"prompt": "What is the max LTV?", "expected_answer": "70%", "language": "fr", "domain": "finance"}
+    legacy = {
+        "prompt": "What is the max LTV?",
+        "expected_answer": "70%",
+        "language": "fr",
+        "domain": "finance",
+    }
     items, issues = parse_lines([json.dumps(legacy)])
     assert items[0].id.startswith("legacy-")
     assert "legacy" in items[0].tags

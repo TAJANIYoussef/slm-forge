@@ -1,0 +1,36 @@
+# stopwords (fr), L1 form; used to count residual content tokens.
+version: 1
+kind: stopwords
+bucket: fr
+words:
+- le
+- la
+- les
+- un
+- une
+- des
+- de
+- du
+- d
+- l
+- a
+- au
+- aux
+- et
+- ou
+- est
+- sont
+- pour
+- par
+- en
+- sur
+- dans
+- quel
+- quelle
+- quels
+- quelles
+- combien
+- ce
+- cette
+- qui
+- que
